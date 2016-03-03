@@ -22,7 +22,7 @@ define FOUR_MM_OFFSET 4
 
 function calculate_absolute_coords_x(x_cell, x_percent){
   x_len = CHAR_HEIGHT*(CHAR_WIDTH_PERCENT/100);
-  x0 = x_cell*x_len + FOUR_MM_OFFSET; // ADD HARDCODE OFFSET
+  x0 = x_cell*(x_len + FOUR_MM_OFFSET); // ADD HARDCODE OFFSET
   x_current = x0 + x_len*(x_percent/100);
   return x_current;
 }
@@ -704,7 +704,7 @@ function robot_fanuc::draw_S(x_cell,y_cell){
   robot->marker_up();
 }
 
-function robot_fanuc::draw_Yu(x_cell,y_cell){
+function robot_fanuc::draw_r_Yu(x_cell,y_cell){
   robot->setPoint(x_cell, y_cell, 5, 5); // 1
   robot->movePoint(x_cell, y_cell, 5, 95); // 2 
 
@@ -804,7 +804,7 @@ function main(){
 	system.echo("\nStart move program\n");
 	@fr->run_program_soft(8);	
 
-    system.echo("\n prepared\n");
+    system.echo("\n start draw\n");
 
     @fr->draw_r_P(0,0);
     @fr->draw_P(1,0);
@@ -976,6 +976,9 @@ function main(){
     @fr->draw_r_I(6,7);
     @fr->draw_T(7,7);
     @fr->draw_soft_sign(8,7);
+	
+	@fr->draw_line(0,8,7);
+	
 
     @fr->draw_r_U(10,7);
     @fr->draw_r_L(11,7);
