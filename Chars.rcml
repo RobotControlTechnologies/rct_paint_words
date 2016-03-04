@@ -10,14 +10,19 @@ define OFF 0
 define _50_MILLISEC 50
 define _200_MILLISEC 200
 
-define START_W -178.913
-define START_P 3.197
-define START_R 105.494
+define START_W -179.707
+define START_P -2.500
+define START_R 103.269
 
+define SECOND_W -179.704
+define SECOND_P -2.514
+define SECOND_R -14.699
+
+define FOUR_MM_OFFSET 4
 
 function calculate_absolute_coords_x(x_cell, x_percent){
   x_len = CHAR_HEIGHT*(CHAR_WIDTH_PERCENT/100);
-  x0 = x_cell*x_len;
+  x0 = x_cell*(x_len + FOUR_MM_OFFSET); // ADD HARDCODE OFFSET
   x_current = x0 + x_len*(x_percent/100);
   return x_current;
 }
@@ -37,14 +42,15 @@ function robot_fanuc::send_move_signal(){
     system.sleep(_50_MILLISEC);
     i = robot->get_logic_do("sync_output");
     busy = robot->get_logic_do("busy");
-    if (i == ON || busy == OFF){
+    if ((i == ON) || (busy == OFF)){
       break;
     }
   }
   if (busy == OFF){
     // выходим и заканчиваем прогу
-    robot->set_logic_di("end_program", ON);
-    system.sleep(_200_MILLISEC);
+    robot->stop_soft_program();
+	system.echo("busy is OFF\n");
+	robot->set_logic_di("sync_input", OFF);
     return 1;
   }
   // Обрываем наш сигнал - робот запускает задачу( он может просто запуститься нам ее надо оборвать)
@@ -54,39 +60,57 @@ function robot_fanuc::send_move_signal(){
     system.sleep(_50_MILLISEC);
     i = robot->get_logic_do("sync_output");
     busy = robot->get_logic_do("busy");
-    if (i != ON || busy == OFF){
+    if ( (i == OFF) || (busy == OFF)){
       break;
     }
   }
   if (busy == OFF){
     // выходим и заканчиваем прогу
-    system.sleep(_200_MILLISEC);
+	system.echo("busy is OFF at the end\n");
     return 1;
   }
+  return 0;
 }
 
 function robot_fanuc::stop_soft_program(){
   robot->set_logic_di("end_program", ON);
+  system.sleep(_200_MILLISEC);
+  robot->set_logic_di("end_program", OFF);
 }
 
 function robot_fanuc::marker_up(){
   robot->set_real_di("z", SAFE_Z);
   //robot->run_program(3);
-  robot->send_move_signal();
+  er = robot->send_move_signal();
+  if (er == 1){
+	system.echo("error marker up\n");
+  }
 }
 
 function robot_fanuc::marker_down(){
   
   robot->set_real_di("z", START_Z);
   //robot->run_program(3);
-  robot->send_move_signal();
+  er = robot->send_move_signal();
+  if (er == 1){
+	system.echo("error marker down\n");
+  }
 }
 
 function robot_fanuc::marker_move(x,y){
   robot->set_real_di("x", x);
   robot->set_real_di("y", y);
   //robot->run_program(3);
-  robot->send_move_signal();
+  er = robot->send_move_signal();
+  if (er == 1){
+	system.echo("error marker move\n");
+  }
+}
+
+function robot_fanuc::draw_line(x1_cell, x2_cell, y_cell){
+  robot->setPoint(x1_cell, y_cell, 5, 50);
+  robot->movePoint(x2_cell, y_cell, 5, 50);
+  robot->marker_up();
 }
 
 function robot_fanuc::setPoint(x_cell, y_cell, x_percent, y_precent){
@@ -108,19 +132,31 @@ function robot_fanuc::movePoint(x_cell, y_cell, x_percent, y_precent){
 function robot_fanuc::prepare(){
   x = calculate_absolute_coords_x(0, 0);
   y = calculate_absolute_coords_y(0, 0);
-
+	
+  robot->set_real_di("x", x);
+  robot->set_real_di("y", y);
   robot->set_real_di("z", SAFE_Z);
   robot->set_real_di("w", START_W);
   robot->set_real_di("p", START_P);
   robot->set_real_di("r", START_R);
-
-  robot->marker_move(x,y);
+  
+  robot->run_program(2);
 }
 
 function robot_fanuc::go_home(){
   robot->marker_up();
   robot->run_program(4);
 }
+
+function robot_fanuc::rotateMarker(){
+  robot->set_real_di("z", SAFE_Z);
+  robot->set_real_di("w", SECOND_W);
+  robot->set_real_di("p", SECOND_P);
+  robot->set_real_di("r", SECOND_R);
+
+  robot->send_move_signal();
+}
+
 
 function robot_fanuc::draw_A(x_cell,y_cell){
   robot->setPoint(x_cell, y_cell, 5, 95);
@@ -274,7 +310,7 @@ function robot_fanuc::draw_T(x_cell,y_cell){
 
 function robot_fanuc::draw_r_U(x_cell,y_cell){
   robot->setPoint(x_cell, y_cell, 5, 95);
-  robot->movePoint(x_cell, y_cell, 95, 95);
+  robot->movePoint(x_cell, y_cell, 95, 5);
 
   robot->setPoint(x_cell, y_cell, 50, 50);
   robot->movePoint(x_cell, y_cell, 5, 5);
@@ -299,7 +335,7 @@ function robot_fanuc::draw_r_Ce(x_cell,y_cell){
   robot->movePoint(x_cell, y_cell, 95, 95);
 
   robot->setPoint(x_cell, y_cell, 85, 85);
-  robot->movePoint(x_cell, y_cell, 85, 95);
+  robot->movePoint(x_cell, y_cell, 85, 5);
 
   robot->marker_up();
 }
@@ -382,7 +418,7 @@ function robot_fanuc::draw_W(x_cell,y_cell){
 function robot_fanuc::draw_Y(x_cell,y_cell){
   robot->setPoint(x_cell, y_cell, 5, 5);
   robot->movePoint(x_cell, y_cell, 50, 50);
-  robot->movePoint(x_cell, y_cell, 95, 95);
+  robot->movePoint(x_cell, y_cell, 95, 5);
 
   robot->setPoint(x_cell, y_cell, 50, 50);
   robot->movePoint(x_cell, y_cell, 50, 95);
@@ -400,14 +436,14 @@ function robot_fanuc::draw_Z(x_cell,y_cell){
 }
 
 function robot_fanuc::draw_I(x_cell,y_cell){
-  robot->setPoint(x_cell, y_cell, 40, 5);
-  robot->movePoint(x_cell, y_cell, 60, 5);
+  robot->setPoint(x_cell, y_cell, 25, 5);
+  robot->movePoint(x_cell, y_cell, 75, 5);
 
   robot->setPoint(x_cell, y_cell, 50, 5);
   robot->movePoint(x_cell, y_cell, 50, 95);
 
-  robot->setPoint(x_cell, y_cell, 40, 95);
-  robot->movePoint(x_cell, y_cell, 60, 95);
+  robot->setPoint(x_cell, y_cell, 25, 95);
+  robot->movePoint(x_cell, y_cell, 75, 95);
 
   robot->marker_up();
 }
@@ -437,19 +473,19 @@ function robot_fanuc::draw_B(x_cell,y_cell){
 }
 
 function robot_fanuc::draw_r_Z(x_cell,y_cell){
-  robot->setPoint(x_cell, y_cell, 95, 20); // 1
-  robot->movePoint(x_cell, y_cell, 80, 5); // 2
-  robot->movePoint(x_cell, y_cell, 20, 5); // 3
-  robot->movePoint(x_cell, y_cell, 5, 20); // 4
+  robot->setPoint(x_cell, y_cell, 5, 20); // 1
+  robot->movePoint(x_cell, y_cell, 20, 5); // 2
+  robot->movePoint(x_cell, y_cell, 80, 5); // 3
+  robot->movePoint(x_cell, y_cell, 95, 20); // 4
 
-  robot->movePoint(x_cell, y_cell, 5, 45); // 5
+  robot->movePoint(x_cell, y_cell, 95, 45); // 5
   robot->movePoint(x_cell, y_cell, 50, 50); // 6
-  robot->movePoint(x_cell, y_cell, 5, 55); // 7
+  robot->movePoint(x_cell, y_cell, 95, 55); // 7
 
-  robot->movePoint(x_cell, y_cell, 5, 80); // 8
-  robot->movePoint(x_cell, y_cell, 20, 95); // 9
-  robot->movePoint(x_cell, y_cell, 80, 95); // 10
-  robot->movePoint(x_cell, y_cell, 95, 80); // 11
+  robot->movePoint(x_cell, y_cell, 95, 80); // 8
+  robot->movePoint(x_cell, y_cell, 80, 95); // 9
+  robot->movePoint(x_cell, y_cell, 20, 95); // 10
+  robot->movePoint(x_cell, y_cell, 5, 80); // 11
 
   robot->marker_up();
 }
@@ -588,18 +624,18 @@ function robot_fanuc::draw_r_y(x_cell,y_cell){
 }
 
 function robot_fanuc::draw_r_aE(x_cell,y_cell){
-  robot->setPoint(x_cell, y_cell, 95, 20); // 1
-  robot->movePoint(x_cell, y_cell, 80, 5); // 2
-  robot->movePoint(x_cell, y_cell, 20, 5); // 3
-  robot->movePoint(x_cell, y_cell, 5, 20); // 4
+  robot->setPoint(x_cell, y_cell, 5, 20); // 1
+  robot->movePoint(x_cell, y_cell, 20, 5); // 2
+  robot->movePoint(x_cell, y_cell, 80, 5); // 3
+  robot->movePoint(x_cell, y_cell, 95, 20); // 4
 
-  robot->movePoint(x_cell, y_cell, 5, 80); // 5
-  robot->movePoint(x_cell, y_cell, 20, 95); // 6
-  robot->movePoint(x_cell, y_cell, 80, 95); // 7
   robot->movePoint(x_cell, y_cell, 95, 80); // 8
+  robot->movePoint(x_cell, y_cell, 80, 95); // 9
+  robot->movePoint(x_cell, y_cell, 20, 95); // 10
+  robot->movePoint(x_cell, y_cell, 5, 80); // 11
 
-  robot->setPoint(x_cell, y_cell, 5, 50);
-  robot->movePoint(x_cell, y_cell, 80, 50); // 8
+  robot->setPoint(x_cell, y_cell, 95, 50);
+  robot->movePoint(x_cell, y_cell, 20, 50); // 8
 
   robot->marker_up();
 }
@@ -668,7 +704,7 @@ function robot_fanuc::draw_S(x_cell,y_cell){
   robot->marker_up();
 }
 
-function robot_fanuc::draw_Yu(x_cell,y_cell){
+function robot_fanuc::draw_r_Yu(x_cell,y_cell){
   robot->setPoint(x_cell, y_cell, 5, 5); // 1
   robot->movePoint(x_cell, y_cell, 5, 95); // 2 
 
@@ -690,7 +726,7 @@ function robot_fanuc::draw_Yu(x_cell,y_cell){
 
 function robot_fanuc::draw_Comm(x_cell,y_cell){
   robot->setPoint(x_cell, y_cell, 50, 90); // 1
-  robot->movePoint(x_cell, y_cell, 55, 95); // 2
+  robot->movePoint(x_cell, y_cell, 45, 95); // 2
 
   robot->marker_up();
 }
@@ -758,22 +794,268 @@ function main(){
   
     @fr = robot_fanuc;
   
-  	@fr->set_integer_di("uframe", 3);
+  	@fr->set_integer_di("uframe", 4);
   	@fr->set_integer_di("tool", 2);
-  	@fr->set_integer_di("payload", 3);
-  	@fr->set_real_di("speed", 20); 
-      
+  	@fr->set_integer_di("payload", 4);
+  	@fr->set_real_di("speed", 100); 
+    
+	system.echo("\n prepare\n");
   	@fr->prepare();
+	system.echo("\nStart move program\n");
+	@fr->run_program_soft(8);	
 
-    @fr->run_program_soft(9); 
+    system.echo("\n start draw\n");
 
-    system.echo("\n prepared\n");
+    @fr->draw_r_P(0,0);
+    @fr->draw_P(1,0);
+    @fr->draw_r_I(2,0);
+    @fr->draw_B(3,0);
+    @fr->draw_E(4,0);
+    @fr->draw_T(5,0);
+    @fr->draw_Comm(6,0);
+
+    @fr->draw_r_L(8,0);
+    @fr->draw_r_Yu(9,0);
+    @fr->draw_r_D(10,0);
+    @fr->draw_r_I(11,0);
+    @fr->draw_Exclamation(12,0);
+
+    @fr->draw_H(14,0);
+    @fr->draw_A(15,0);
+    @fr->draw_M(16,0);
+
+    @fr->draw_H(18,0);
+    @fr->draw_r_U(19,0);
+    @fr->draw_r_Je(20,0);
+    @fr->draw_E(21,0);
+    @fr->draw_H(22,0);
+
+    @fr->draw_P(0,1);
     @fr->draw_A(1,1);
-  	@fr->draw_B(1,2);
-  	@fr->draw_Q(1,3);
-  	@fr->draw_D(1,4);
-  	@fr->draw_E(1,5);
-  	@fr->draw_r_y(1,6);
+    @fr->draw_r_Z(2,1);
+    @fr->draw_P(3,1);
+    @fr->draw_A(4,1);
+    @fr->draw_r_B(5,1);
+    @fr->draw_O(6,1);
+    @fr->draw_T(7,1);
+    @fr->draw_r_Che(8,1);
+    @fr->draw_r_I(9,1);
+    @fr->draw_K(10,1);
+    @fr->draw_Dot(11,1);
+    @fr->draw_r_D(12,1);
+    @fr->draw_r_L(13,1);
+    @fr->draw_r_Ya(14,1);
+
+    @fr->draw_C(16,1);
+    @fr->draw_O(17,1);
+    @fr->draw_r_Z(18,1);
+    @fr->draw_r_D(19,1);
+    @fr->draw_A(20,1);
+    @fr->draw_H(21,1);
+    @fr->draw_r_I(22,1);
+    @fr->draw_r_Ya(23,1);
+
+    @fr->draw_B(25,1);
+    @fr->draw_E(26,1);
+    @fr->draw_r_B(27,1);
+
+    @fr->draw_r_I(0,2);
+    @fr->draw_H(1,2);
+    @fr->draw_T(2,2);
+    @fr->draw_E(3,2);
+    @fr->draw_P(4,2);
+    @fr->draw_r_F(5,2);
+    @fr->draw_E(6,2);
+    @fr->draw_r_Ii(7,2);
+    @fr->draw_C(8,2);
+    @fr->draw_A(9,2);
+
+    @fr->draw_C(11,2);
+    @fr->draw_r_I(12,2);
+    @fr->draw_C(13,2);
+    @fr->draw_T(14,2);
+    @fr->draw_E(15,2);
+    @fr->draw_M(16,2);
+    @fr->draw_r_y(17,2);
+
+    @fr->draw_H(19,2);
+    @fr->draw_A(20,2);
+    @fr->draw_r_Sha(21,2);
+    @fr->draw_r_I(22,2);
+    @fr->draw_X(23,2);
+
+    @fr->draw_r_Z(0,3);
+    @fr->draw_H(1,3);
+    @fr->draw_A(2,3);
+    @fr->draw_H(3,3);
+    @fr->draw_r_I(4,3);
+    @fr->draw_r_Ii(5,3);
+    @fr->draw_Dot(6,3);
+
+    @fr->draw_T(8,3);
+    @fr->draw_A(9,3);
+    @fr->draw_K(10,3);
+
+    @fr->draw_M(12,3);
+    @fr->draw_r_y(13,3);
+
+    @fr->draw_C(15,3);
+    @fr->draw_M(16,3);
+    @fr->draw_O(17,3);
+    @fr->draw_r_Je(18,3);
+    @fr->draw_E(19,3);
+    @fr->draw_M(20,3);
+
+    @fr->draw_r_P(22,3);
+    @fr->draw_E(23,3);
+    @fr->draw_P(24,3);
+    @fr->draw_E(25,3);
+    @fr->draw_H(26,3);
+    @fr->draw_r_Ya(27,3);
+    @fr->draw_T(28,3);
+    @fr->draw_soft_sign(29,3);
+
+    @fr->draw_O(0,4);
+    @fr->draw_T(1,4);
+
+    @fr->draw_B(3,4);
+    @fr->draw_A(4,4);
+    @fr->draw_C(5,4);
+
+    @fr->draw_r_Ge(7,4);
+    @fr->draw_r_U(8,4);
+    @fr->draw_M(9,4);
+    @fr->draw_A(10,4);
+    @fr->draw_H(11,4);
+    @fr->draw_O(12,4);
+    @fr->draw_r_Ii(13,4);
+    @fr->draw_r_D(14,4);
+    @fr->draw_O(15,4);
+    @fr->draw_B(16,4);
+
+    @fr->draw_r_Z(18,4);
+    @fr->draw_H(19,4);
+    @fr->draw_A(20,4);
+    @fr->draw_H(21,4);
+    @fr->draw_r_I(22,4);
+    @fr->draw_r_Ya(23,4);
+    @fr->draw_Dot(24,4);
+
+    // rotate marker
+    @fr->rotateMarker();
+
+    @fr->draw_r_I(0,6);
+
+    @fr->draw_H(2,6);
+    @fr->draw_A(3,6);
+    @fr->draw_K(4,6);
+    @fr->draw_O(5,6);
+    @fr->draw_H(6,6);
+    @fr->draw_E(7,6);
+    @fr->draw_r_Ce(8,6);
+    @fr->draw_Minus(9,6);
+    @fr->draw_T(10,6);
+    @fr->draw_O(11,6);
+
+    @fr->draw_M(13,6);
+    @fr->draw_r_y(14,6);
+
+    @fr->draw_C(16,6);
+    @fr->draw_M(17,6);
+    @fr->draw_O(18,6);
+    @fr->draw_r_Je(19,6);
+    @fr->draw_E(20,6);
+    @fr->draw_M(21,6);
+
+    @fr->draw_r_Z(0,7);
+    @fr->draw_A(1,7);
+    @fr->draw_X(2,7);
+    @fr->draw_B(3,7);
+    @fr->draw_A(4,7);
+    @fr->draw_T(5,7);
+    @fr->draw_r_I(6,7);
+    @fr->draw_T(7,7);
+    @fr->draw_soft_sign(8,7);
+	
+	@fr->draw_line(0,8,7);
+	
+
+    @fr->draw_r_U(10,7);
+    @fr->draw_r_L(11,7);
+    @fr->draw_r_U(12,7);
+    @fr->draw_r_Che(13,7);
+    @fr->draw_r_Sha(14,7);
+    @fr->draw_r_I(15,7);
+    @fr->draw_T(16,7);
+    @fr->draw_soft_sign(17,7);
+
+    @fr->draw_r_aE(19,7);
+    @fr->draw_T(20,7);
+    @fr->draw_O(21,7);
+    @fr->draw_T(22,7);
+
+    @fr->draw_M(24,7);
+    @fr->draw_r_I(25,7);
+    @fr->draw_P(26,7);
+
+    @fr->draw_r_P(0,9);
+    @fr->draw_O(1,9);
+    @fr->draw_r_D(2,9);
+    @fr->draw_P(3,9);
+    @fr->draw_O(4,9);
+    @fr->draw_r_B(5,9);
+    @fr->draw_H(6,9);
+    @fr->draw_E(7,9);
+    @fr->draw_E(8,9);
+    @fr->draw_two_dots(9,9);
+
+    @fr->draw_H(11,9);
+    @fr->draw_T(12,9);
+    @fr->draw_T(13,9);
+    @fr->draw_P(14,9);
+    @fr->draw_two_dots(15,9);
+    @fr->draw_Slash(16,9);
+    @fr->draw_Slash(17,9);
+    @fr->draw_R(18,9);
+    @fr->draw_O(19,9);
+    @fr->draw_B(20,9);
+    @fr->draw_O(21,9);
+    @fr->draw_T(22,9);
+    @fr->draw_C(23,9);
+    @fr->draw_T(24,9);
+    @fr->draw_Dot(25,9);
+    @fr->draw_C(26,9);
+    @fr->draw_O(27,9);
+    @fr->draw_M(28,9);
+    @fr->draw_Slash(29,9);
+    @fr->draw_H(30,9);
+    @fr->draw_I(31,9);
+
+    @fr->draw_r_I(2,10);
+    @fr->draw_C(3,10);
+    @fr->draw_K(4,10);
+    @fr->draw_P(5,10);
+    @fr->draw_E(6,10);
+    @fr->draw_H(7,10);
+    @fr->draw_H(8,10);
+    @fr->draw_E(9,10);
+
+    @fr->draw_B(11,10);
+    @fr->draw_A(12,10);
+    @fr->draw_r_Sha(13,10);
+
+    @fr->draw_S(15,10);
+    @fr->draw_K(16,10);
+    @fr->draw_Y(17,10);
+    @fr->draw_N(18,10);
+    @fr->draw_E(19,10);
+    @fr->draw_T(20,10);
+
+    @fr->draw_Equal(22,10);
+    @fr->draw_Roof(23,10);
+    @fr->draw_Minus(24,10);
+    @fr->draw_Roof(25,10);
+    @fr->draw_Equal(26,10);
 
     @fr->stop_soft_program();
     
