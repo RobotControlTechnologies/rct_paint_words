@@ -1,5 +1,6 @@
+// CONFIG
 define CHAR_WIDTH_PERCENT 60
-define CHAR_HEIGHT 50
+define CHAR_HEIGHT_MM 50
 define SAFE_Z -20
 define START_Z 0
 define BORDER_Y 120
@@ -7,8 +8,8 @@ define BORDER_X 75
 
 define ON  1
 define OFF 0
-define _50_MILLISEC 50
-define _200_MILLISEC 200
+define _SIGNAL_PAUSE_MILLISEC 50
+define _OFF_PAUSE_MILLISEC 200
 
 define START_W -179.707
 define START_P -2.500
@@ -18,18 +19,20 @@ define SECOND_W -179.704
 define SECOND_P -2.514
 define SECOND_R -14.699
 
-define FOUR_MM_OFFSET 4
+define CHAR_OFFSET_MM 4
+
+// CODE
 
 function calculate_absolute_coords_x(x_cell, x_percent){
-  x_len = CHAR_HEIGHT*(CHAR_WIDTH_PERCENT/100);
-  x0 = x_cell*(x_len + FOUR_MM_OFFSET); // ADD HARDCODE OFFSET
+  x_len = CHAR_HEIGHT_MM*(CHAR_WIDTH_PERCENT/100);
+  x0 = x_cell*(x_len + CHAR_OFFSET_MM); // ADD HARDCODE OFFSET
   x_current = x0 + x_len*(x_percent/100);
   return x_current;
 }
 
 function calculate_absolute_coords_y(y_cell,y_precent){
-  y0 = y_cell*CHAR_HEIGHT;
-  y_current = y0 + CHAR_HEIGHT*(y_precent/100);
+  y0 = y_cell*CHAR_HEIGHT_MM;
+  y_current = y0 + CHAR_HEIGHT_MM*(y_precent/100);
   return y_current;
 }
 
@@ -39,7 +42,7 @@ function robot_fanuc::send_move_signal(){
   // Ждем ответного сигнала от робота что данные прочитаны
   busy = ON;
   loop {
-    system.sleep(_50_MILLISEC);
+    system.sleep(_SIGNAL_PAUSE_MILLISEC);
     i = robot->get_logic_do("sync_output");
     busy = robot->get_logic_do("busy");
     if ((i == ON) || (busy == OFF)){
@@ -57,7 +60,7 @@ function robot_fanuc::send_move_signal(){
   robot->set_logic_di("sync_input", OFF);
   // Ждем пока работает сигнал робота
   loop {
-    system.sleep(_50_MILLISEC);
+    system.sleep(_SIGNAL_PAUSE_MILLISEC);
     i = robot->get_logic_do("sync_output");
     busy = robot->get_logic_do("busy");
     if ( (i == OFF) || (busy == OFF)){
@@ -67,14 +70,14 @@ function robot_fanuc::send_move_signal(){
   if (busy == OFF){
     // выходим и заканчиваем прогу
 	system.echo("busy is OFF at the end\n");
-    return 1;
+    return 2;
   }
   return 0;
 }
 
 function robot_fanuc::stop_soft_program(){
   robot->set_logic_di("end_program", ON);
-  system.sleep(_200_MILLISEC);
+  system.sleep(_OFF_PAUSE_MILLISEC);
   robot->set_logic_di("end_program", OFF);
 }
 
@@ -82,8 +85,9 @@ function robot_fanuc::marker_up(){
   robot->set_real_di("z", SAFE_Z);
   //robot->run_program(3);
   er = robot->send_move_signal();
-  if (er == 1){
-	system.echo("error marker up\n");
+  if (er != 0){
+    system.echo("error marker up\n");
+    throw er;
   }
 }
 
@@ -92,8 +96,9 @@ function robot_fanuc::marker_down(){
   robot->set_real_di("z", START_Z);
   //robot->run_program(3);
   er = robot->send_move_signal();
-  if (er == 1){
-	system.echo("error marker down\n");
+  if (er != 0){
+    system.echo("error marker down\n");
+    throw er;
   }
 }
 
@@ -102,14 +107,15 @@ function robot_fanuc::marker_move(x,y){
   robot->set_real_di("y", y);
   //robot->run_program(3);
   er = robot->send_move_signal();
-  if (er == 1){
-	system.echo("error marker move\n");
+  if (er != 0){
+    system.echo("error marker move\n");
+    throw er;
   }
 }
 
 function robot_fanuc::draw_line(x1_cell, x2_cell, y_cell){
   robot->setPoint(x1_cell, y_cell, 5, 50);
-  robot->movePoint(x2_cell, y_cell, 5, 50);
+  robot->movePoint(x2_cell, y_cell, 95, 50);
   robot->marker_up();
 }
 
@@ -1062,9 +1068,11 @@ function main(){
     @fr->go_home();
     delete @fr;  
   } 
-  catch{
-    system.echo("catch exception\n");
+  catch(E){
+    system.echo("Catch exception!\n");
+    return E;
   }
 
   system.echo("\nEnd\n");
+  return 0;
 }
