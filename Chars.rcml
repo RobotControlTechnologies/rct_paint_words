@@ -948,7 +948,9 @@ function main(){
     @fr->draw_Dot(24,4);
 
     // rotate marker
+    @fr->set_real_di("speed", 10); 
     @fr->rotateMarker();
+    @fr->set_real_di("speed", 100); 
 
     @fr->draw_r_I(0,6);
 

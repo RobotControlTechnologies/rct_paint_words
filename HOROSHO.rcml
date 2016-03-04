@@ -1,0 +1,901 @@
+// CONFIG
+define CHAR_WIDTH_PERCENT 60
+define CHAR_HEIGHT_MM 50
+define SAFE_Z -20
+define START_Z 0
+define BORDER_Y 120
+define BORDER_X 75
+
+define ON  1
+define OFF 0
+define _SIGNAL_PAUSE_MILLISEC 50
+define _OFF_PAUSE_MILLISEC 200
+
+define START_W -179.707
+define START_P -2.500
+define START_R 103.269
+
+define SECOND_W -179.704
+define SECOND_P -2.514
+define SECOND_R -14.699
+
+define CHAR_OFFSET_MM 4
+
+define CHAR_PARAMS x_0, y_0, x_size, y_size
+
+// CODE
+
+function calculate_absolute_coords_x(x_0, x_size, x_percent){
+  x_current = x_0 + x_size*(x_percent/100);
+  return x_current;
+}
+
+function calculate_absolute_coords_y(y_0, y_size, y_precent){
+  y_current = y_0 + CHAR_HEIGHT_MM*(y_precent/100);
+  return y_current;
+}
+
+function calculate_absolute_coords_by_cell_num_x(x_cell, x_percent){
+  x_len = CHAR_HEIGHT_MM*(CHAR_WIDTH_PERCENT/100);
+  x0 = x_cell*(x_len + CHAR_OFFSET_MM); // ADD HARDCODE OFFSET
+  x_current = x0 + x_len*(x_percent/100);
+  return x_current;
+}
+
+function calculate_absolute_coords_by_cell_num_y(y_cell,y_precent){
+  y0 = y_cell*CHAR_HEIGHT_MM;
+  y_current = y0 + CHAR_HEIGHT_MM*(y_precent/100);
+  return y_current;
+}
+
+function robot_fanuc::send_move_signal(){
+  // Отправили роботу сигнал - данные записаны
+  robot->set_logic_di("sync_input", ON);
+  // Ждем ответного сигнала от робота что данные прочитаны
+  busy = ON;
+  loop {
+    system.sleep(_SIGNAL_PAUSE_MILLISEC);
+    i = robot->get_logic_do("sync_output");
+    busy = robot->get_logic_do("busy");
+    if ((i == ON) || (busy == OFF)){
+      break;
+    }
+  }
+  if (busy == OFF){
+    // выходим и заканчиваем прогу
+    robot->stop_soft_program();
+	  system.echo("busy is OFF\n");
+	  robot->set_logic_di("sync_input", OFF);
+    return 1;
+  }
+  // Обрываем наш сигнал - робот запускает задачу( он может просто запуститься нам ее надо оборвать)
+  robot->set_logic_di("sync_input", OFF);
+  // Ждем пока работает сигнал робота
+  loop {
+    system.sleep(_SIGNAL_PAUSE_MILLISEC);
+    i = robot->get_logic_do("sync_output");
+    busy = robot->get_logic_do("busy");
+    if ( (i == OFF) || (busy == OFF)){
+      break;
+    }
+  }
+  if (busy == OFF){
+    // выходим и заканчиваем прогу
+	  system.echo("busy is OFF at the end\n");
+    return 2;
+  }
+  return 0;
+}
+
+function robot_fanuc::stop_soft_program(){
+  robot->set_logic_di("end_program", ON);
+  system.sleep(_OFF_PAUSE_MILLISEC);
+  robot->set_logic_di("end_program", OFF);
+}
+
+function robot_fanuc::marker_up(){
+  robot->set_real_di("z", SAFE_Z);
+  er = robot->send_move_signal();
+  if (er != 0){
+    system.echo("error marker up\n");
+    throw er;
+  }
+}
+
+function robot_fanuc::marker_down(){
+  
+  robot->set_real_di("z", START_Z);
+  er = robot->send_move_signal();
+  if (er != 0){
+    system.echo("error marker down\n");
+    throw er;
+  }
+}
+
+function robot_fanuc::marker_move(x,y){
+  robot->set_real_di("x", x);
+  robot->set_real_di("y", y);
+  er = robot->send_move_signal();
+  if (er != 0){
+    system.echo("error marker move\n");
+    throw er;
+  }
+}
+
+function robot_fanuc::draw_line(x1_cell, x2_cell, y_cell){
+  robot->setPoint(x1_cell, y_cell, 5, 50);
+  robot->movePoint(x2_cell, y_cell, 95, 50);
+  robot->marker_up();
+}
+
+function robot_fanuc::setPoint(CHAR_PARAMS, x_percent, y_precent){
+  x = calculate_absolute_coords_x(x_cell, x_percent);
+  y = calculate_absolute_coords_y(y_cell, y_precent);
+ 
+  robot->marker_up();
+  robot->marker_move(x,y);
+  robot->marker_down();
+}
+
+function robot_fanuc::movePoint(CHAR_PARAMS, x_percent, y_precent){
+  x = calculate_absolute_coords_x(x_cell, x_percent);
+  y = calculate_absolute_coords_y(y_cell, y_precent);
+  
+  robot->marker_move(x,y);
+}
+
+function robot_fanuc::prepare(CHAR_PARAMS){
+  x = calculate_absolute_coords_x(x_0, x_size, 0);
+  y = calculate_absolute_coords_y(y_0, y_size, 0);
+	
+  robot->set_real_di("x", x);
+  robot->set_real_di("y", y);
+  robot->set_real_di("z", SAFE_Z);
+  robot->set_real_di("w", START_W);
+  robot->set_real_di("p", START_P);
+  robot->set_real_di("r", START_R);
+  
+  robot->run_program(2);
+}
+
+function robot_fanuc::go_home(){
+  robot->marker_up();
+  robot->run_program(4);
+}
+
+function robot_fanuc::rotateMarker(){
+  robot->set_real_di("z", SAFE_Z);
+  robot->set_real_di("w", SECOND_W);
+  robot->set_real_di("p", SECOND_P);
+  robot->set_real_di("r", SECOND_R);
+
+  robot->send_move_signal();
+}
+
+
+function robot_fanuc::draw_A(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 95);
+  robot->movePoint(CHAR_PARAMS, 50, 5);
+  robot->movePoint(CHAR_PARAMS, 95, 95);
+  robot->setPoint(CHAR_PARAMS, 35, 50);
+  robot->movePoint(CHAR_PARAMS, 65, 50);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_Ge(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 95);
+  robot->movePoint(CHAR_PARAMS, 5, 5);
+  robot->movePoint(CHAR_PARAMS, 95, 5);
+  robot->movePoint(CHAR_PARAMS, 95, 10);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_D(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 95);
+  robot->movePoint(CHAR_PARAMS, 5, 75);
+  robot->movePoint(CHAR_PARAMS, 95, 75);
+  robot->movePoint(CHAR_PARAMS, 95, 95);
+
+  robot->setPoint(CHAR_PARAMS, 75, 75);
+  robot->movePoint(CHAR_PARAMS, 65, 5);
+  robot->movePoint(CHAR_PARAMS, 35, 5);
+  robot->movePoint(CHAR_PARAMS, 25, 75);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_E(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 95, 95);
+  robot->movePoint(CHAR_PARAMS, 5, 95);
+  robot->movePoint(CHAR_PARAMS, 5, 5);
+  robot->movePoint(CHAR_PARAMS, 95, 5);
+
+  robot->setPoint(CHAR_PARAMS, 5, 50);
+  robot->movePoint(CHAR_PARAMS, 95, 50);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_Je(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 5);
+  robot->movePoint(CHAR_PARAMS, 95, 95);
+
+  robot->setPoint(CHAR_PARAMS, 50, 95);
+  robot->movePoint(CHAR_PARAMS, 50, 5);
+
+  robot->setPoint(CHAR_PARAMS, 95, 5);
+  robot->movePoint(CHAR_PARAMS, 5, 95);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_I(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 5);
+  robot->movePoint(CHAR_PARAMS, 5, 95);
+  robot->movePoint(CHAR_PARAMS, 95, 5);
+  robot->movePoint(CHAR_PARAMS, 95, 95);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_Ii(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 5);
+  robot->movePoint(CHAR_PARAMS, 5, 95);
+  robot->movePoint(CHAR_PARAMS, 95, 5);
+  robot->movePoint(CHAR_PARAMS, 95, 95);
+
+  robot->setPoint(CHAR_PARAMS, 45, 5);
+  robot->movePoint(CHAR_PARAMS, 50, 10);
+  robot->movePoint(CHAR_PARAMS, 55, 5);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_L(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 95);
+  robot->movePoint(CHAR_PARAMS, 50, 5);
+  robot->movePoint(CHAR_PARAMS, 95, 95);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_K(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 5);
+  robot->movePoint(CHAR_PARAMS, 5, 95);
+
+  robot->setPoint(CHAR_PARAMS, 95, 95);
+  robot->movePoint(CHAR_PARAMS, 5, 50);
+  robot->movePoint(CHAR_PARAMS, 95, 5);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_M(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 95);
+  robot->movePoint(CHAR_PARAMS, 5, 5);
+  robot->movePoint(CHAR_PARAMS, 50, 60);
+  robot->movePoint(CHAR_PARAMS, 95, 5);
+  robot->movePoint(CHAR_PARAMS, 95, 95);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_N(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 95);
+  robot->movePoint(CHAR_PARAMS, 5, 5);
+  robot->movePoint(CHAR_PARAMS, 95, 95);
+  robot->movePoint(CHAR_PARAMS, 95, 5);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_H(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 5);
+  robot->movePoint(CHAR_PARAMS, 5, 95);
+
+  robot->setPoint(CHAR_PARAMS, 5, 50);
+  robot->movePoint(CHAR_PARAMS, 95, 50);
+
+  robot->setPoint(CHAR_PARAMS, 95, 95);
+  robot->movePoint(CHAR_PARAMS, 95, 5);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_P(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 95);
+  robot->movePoint(CHAR_PARAMS, 5, 5);
+  robot->movePoint(CHAR_PARAMS, 95, 5);
+  robot->movePoint(CHAR_PARAMS, 95, 95);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_T(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 50, 95);
+  robot->movePoint(CHAR_PARAMS, 50, 5);
+
+  robot->setPoint(CHAR_PARAMS, 5, 5);
+  robot->movePoint(CHAR_PARAMS, 95, 5);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_U(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 95);
+  robot->movePoint(CHAR_PARAMS, 95, 5);
+
+  robot->setPoint(CHAR_PARAMS, 50, 50);
+  robot->movePoint(CHAR_PARAMS, 5, 5);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_X(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 5);
+  robot->movePoint(CHAR_PARAMS, 95, 95);
+
+  robot->setPoint(CHAR_PARAMS, 5, 95);
+  robot->movePoint(CHAR_PARAMS, 95, 5);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_Ce(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 5);
+  robot->movePoint(CHAR_PARAMS, 5, 85);
+  robot->movePoint(CHAR_PARAMS, 95, 85);
+  robot->movePoint(CHAR_PARAMS, 95, 95);
+
+  robot->setPoint(CHAR_PARAMS, 85, 85);
+  robot->movePoint(CHAR_PARAMS, 85, 5);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_Sha(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 5);
+  robot->movePoint(CHAR_PARAMS, 5, 95);
+  robot->movePoint(CHAR_PARAMS, 95, 95);
+  robot->movePoint(CHAR_PARAMS, 95, 5);
+
+  robot->setPoint(CHAR_PARAMS, 50, 95);
+  robot->movePoint(CHAR_PARAMS, 50, 10);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_Shya(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 5);
+  robot->movePoint(CHAR_PARAMS, 5, 85);
+  robot->movePoint(CHAR_PARAMS, 95, 85);
+  robot->movePoint(CHAR_PARAMS, 95, 95);
+
+  robot->setPoint(CHAR_PARAMS, 85, 85);
+  robot->movePoint(CHAR_PARAMS, 85, 5);
+
+  robot->setPoint(CHAR_PARAMS, 40, 15);
+  robot->movePoint(CHAR_PARAMS, 40, 85);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_Che(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 95, 95);
+  robot->movePoint(CHAR_PARAMS, 95, 5);
+
+  robot->setPoint(CHAR_PARAMS, 95, 50);
+  robot->movePoint(CHAR_PARAMS, 5, 50);
+  robot->movePoint(CHAR_PARAMS, 5, 5);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_F(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 95);
+  robot->movePoint(CHAR_PARAMS, 5, 5);
+  robot->movePoint(CHAR_PARAMS, 95, 5);
+
+  robot->setPoint(CHAR_PARAMS, 5, 50);
+  robot->movePoint(CHAR_PARAMS, 95, 50);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_L(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 5);
+  robot->movePoint(CHAR_PARAMS, 5, 95);
+  robot->movePoint(CHAR_PARAMS, 95, 95);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_V(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 5);
+  robot->movePoint(CHAR_PARAMS, 50, 95);
+  robot->movePoint(CHAR_PARAMS, 95, 95);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_W(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 5);
+  robot->movePoint(CHAR_PARAMS, 25, 95);
+  robot->movePoint(CHAR_PARAMS, 50, 60);
+  robot->movePoint(CHAR_PARAMS, 75, 95);
+  robot->movePoint(CHAR_PARAMS, 95, 5);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_Y(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 5);
+  robot->movePoint(CHAR_PARAMS, 50, 50);
+  robot->movePoint(CHAR_PARAMS, 95, 5);
+
+  robot->setPoint(CHAR_PARAMS, 50, 50);
+  robot->movePoint(CHAR_PARAMS, 50, 95);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_Z(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 5);
+  robot->movePoint(CHAR_PARAMS, 95, 5);
+  robot->movePoint(CHAR_PARAMS, 5, 95);
+  robot->movePoint(CHAR_PARAMS, 95, 95);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_I(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 25, 5);
+  robot->movePoint(CHAR_PARAMS, 75, 5);
+
+  robot->setPoint(CHAR_PARAMS, 50, 5);
+  robot->movePoint(CHAR_PARAMS, 50, 95);
+
+  robot->setPoint(CHAR_PARAMS, 25, 95);
+  robot->movePoint(CHAR_PARAMS, 75, 95);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_B(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 95, 5); // 1
+  robot->movePoint(CHAR_PARAMS, 5, 5); // 2
+  robot->movePoint(CHAR_PARAMS, 5, 95); // 3
+  robot->movePoint(CHAR_PARAMS, 95, 85); // 4
+  robot->movePoint(CHAR_PARAMS, 95, 60); // 5
+  robot->movePoint(CHAR_PARAMS, 5, 50); // 6
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_B(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 5); // 1
+  robot->movePoint(CHAR_PARAMS, 5, 95); // 2
+  robot->movePoint(CHAR_PARAMS, 95, 85); // 3
+  robot->movePoint(CHAR_PARAMS, 95, 60); // 4
+  robot->movePoint(CHAR_PARAMS, 5, 50); // 5
+  robot->movePoint(CHAR_PARAMS, 95, 40); // 6
+  robot->movePoint(CHAR_PARAMS, 95, 15); // 7
+  robot->movePoint(CHAR_PARAMS, 5, 5); // 8
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_Z(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 20); // 1
+  robot->movePoint(CHAR_PARAMS, 20, 5); // 2
+  robot->movePoint(CHAR_PARAMS, 80, 5); // 3
+  robot->movePoint(CHAR_PARAMS, 95, 20); // 4
+
+  robot->movePoint(CHAR_PARAMS, 95, 45); // 5
+  robot->movePoint(CHAR_PARAMS, 50, 50); // 6
+  robot->movePoint(CHAR_PARAMS, 95, 55); // 7
+
+  robot->movePoint(CHAR_PARAMS, 95, 80); // 8
+  robot->movePoint(CHAR_PARAMS, 80, 95); // 9
+  robot->movePoint(CHAR_PARAMS, 20, 95); // 10
+  robot->movePoint(CHAR_PARAMS, 5, 80); // 11
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_O(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 95, 20); // 1
+  robot->movePoint(CHAR_PARAMS, 80, 5); // 2
+  robot->movePoint(CHAR_PARAMS, 20, 5); // 3
+  robot->movePoint(CHAR_PARAMS, 5, 20); // 4
+
+  robot->movePoint(CHAR_PARAMS, 5, 80); // 5
+  robot->movePoint(CHAR_PARAMS, 20, 95); // 6
+  robot->movePoint(CHAR_PARAMS, 80, 95); // 7
+  robot->movePoint(CHAR_PARAMS, 95, 80); // 8
+  robot->movePoint(CHAR_PARAMS, 95, 20); // 9
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_C(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 95, 20); // 1
+  robot->movePoint(CHAR_PARAMS, 80, 5); // 2
+  robot->movePoint(CHAR_PARAMS, 20, 5); // 3
+  robot->movePoint(CHAR_PARAMS, 5, 20); // 4
+
+  robot->movePoint(CHAR_PARAMS, 5, 80); // 5
+  robot->movePoint(CHAR_PARAMS, 20, 95); // 6
+  robot->movePoint(CHAR_PARAMS, 80, 95); // 7
+  robot->movePoint(CHAR_PARAMS, 95, 80); // 8
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_G(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 95, 20); // 1
+  robot->movePoint(CHAR_PARAMS, 80, 5); // 2
+  robot->movePoint(CHAR_PARAMS, 20, 5); // 3
+  robot->movePoint(CHAR_PARAMS, 5, 20); // 4
+
+  robot->movePoint(CHAR_PARAMS, 5, 80); // 5
+  robot->movePoint(CHAR_PARAMS, 20, 95); // 6
+  robot->movePoint(CHAR_PARAMS, 80, 95); // 7
+  robot->movePoint(CHAR_PARAMS, 95, 80); // 8
+
+  robot->movePoint(CHAR_PARAMS, 95, 65); // 9
+  robot->movePoint(CHAR_PARAMS, 75, 65); // 10
+  robot->movePoint(CHAR_PARAMS, 75, 75); // 11
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_Q(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 95, 20); // 1
+  robot->movePoint(CHAR_PARAMS, 80, 5); // 2
+  robot->movePoint(CHAR_PARAMS, 20, 5); // 3
+  robot->movePoint(CHAR_PARAMS, 5, 20); // 4
+
+  robot->movePoint(CHAR_PARAMS, 5, 80); // 5
+  robot->movePoint(CHAR_PARAMS, 20, 95); // 6
+  robot->movePoint(CHAR_PARAMS, 80, 95); // 7
+  robot->movePoint(CHAR_PARAMS, 95, 80); // 8
+  robot->movePoint(CHAR_PARAMS, 95, 20); // 9
+
+  robot->setPoint(CHAR_PARAMS, 75, 75); // 10
+  robot->movePoint(CHAR_PARAMS, 95, 95); // 11
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_U(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 5);    // 1
+  robot->movePoint(CHAR_PARAMS, 5, 80);  // 2
+  robot->movePoint(CHAR_PARAMS, 20, 95); // 3
+  robot->movePoint(CHAR_PARAMS, 80, 95); // 4
+  robot->movePoint(CHAR_PARAMS, 95, 80); // 5
+  robot->movePoint(CHAR_PARAMS, 95, 5);  // 6
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_J(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 70);    // 1
+  robot->movePoint(CHAR_PARAMS, 5, 80);  // 2
+  robot->movePoint(CHAR_PARAMS, 20, 95); // 3
+  robot->movePoint(CHAR_PARAMS, 80, 95); // 4
+  robot->movePoint(CHAR_PARAMS, 95, 80); // 5
+  robot->movePoint(CHAR_PARAMS, 95, 5);  // 6
+  robot->movePoint(CHAR_PARAMS, 65, 5);  // 7
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_P(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 95);   // 1
+  robot->movePoint(CHAR_PARAMS, 5, 5);   // 2
+  robot->movePoint(CHAR_PARAMS, 95, 15); // 3
+  robot->movePoint(CHAR_PARAMS, 95, 40); // 3
+  robot->movePoint(CHAR_PARAMS, 5, 50);  // 4
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_soft_sign(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 5); // 1
+  robot->movePoint(CHAR_PARAMS, 5, 95); // 2
+  robot->movePoint(CHAR_PARAMS, 95, 85); // 3
+  robot->movePoint(CHAR_PARAMS, 95, 60); // 3
+  robot->movePoint(CHAR_PARAMS, 5, 50); // 4
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_hard_sign(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 5); // 1
+  robot->movePoint(CHAR_PARAMS, 15, 5); // 2
+  robot->movePoint(CHAR_PARAMS, 15, 95); // 3
+  robot->movePoint(CHAR_PARAMS, 95, 85); // 4
+  robot->movePoint(CHAR_PARAMS, 95, 60); // 4
+  robot->movePoint(CHAR_PARAMS, 15, 50); // 5
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_y(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 5); // 1
+  robot->movePoint(CHAR_PARAMS, 5, 95); // 2
+  robot->movePoint(CHAR_PARAMS, 75, 85); // 3
+  robot->movePoint(CHAR_PARAMS, 75, 60); // 3
+  robot->movePoint(CHAR_PARAMS, 5, 50); // 4
+
+  robot->setPoint(CHAR_PARAMS, 95, 95); // 1
+  robot->movePoint(CHAR_PARAMS, 95, 5); // 2
+
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_aE(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 20); // 1
+  robot->movePoint(CHAR_PARAMS, 20, 5); // 2
+  robot->movePoint(CHAR_PARAMS, 80, 5); // 3
+  robot->movePoint(CHAR_PARAMS, 95, 20); // 4
+
+  robot->movePoint(CHAR_PARAMS, 95, 80); // 8
+  robot->movePoint(CHAR_PARAMS, 80, 95); // 9
+  robot->movePoint(CHAR_PARAMS, 20, 95); // 10
+  robot->movePoint(CHAR_PARAMS, 5, 80); // 11
+
+  robot->setPoint(CHAR_PARAMS, 95, 50);
+  robot->movePoint(CHAR_PARAMS, 20, 50); // 8
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_D(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 5); // 1
+  robot->movePoint(CHAR_PARAMS, 5, 95); // 2
+  robot->movePoint(CHAR_PARAMS, 95, 75); // 3
+  robot->movePoint(CHAR_PARAMS, 95, 25); // 4
+  robot->movePoint(CHAR_PARAMS, 5, 5); // 5
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_R(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 95); // 1
+  robot->movePoint(CHAR_PARAMS, 5, 5); // 2
+  robot->movePoint(CHAR_PARAMS, 95, 15); // 3
+  robot->movePoint(CHAR_PARAMS, 95, 40); // 4
+  robot->movePoint(CHAR_PARAMS, 5, 50); // 5
+  robot->movePoint(CHAR_PARAMS, 95, 95); // 6
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_Ya(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 95, 95); // 1
+  robot->movePoint(CHAR_PARAMS, 95, 5); // 2
+  robot->movePoint(CHAR_PARAMS, 5, 15); // 3
+  robot->movePoint(CHAR_PARAMS, 5, 40); // 4
+  robot->movePoint(CHAR_PARAMS, 95, 50); // 5
+  robot->movePoint(CHAR_PARAMS, 5, 95); // 6
+
+  robot->marker_up();
+}
+
+
+function robot_fanuc::draw_r_F(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 50, 95); // 1
+  robot->movePoint(CHAR_PARAMS, 50, 85); // 2 = 6
+  robot->movePoint(CHAR_PARAMS, 95, 75); // 3
+  robot->movePoint(CHAR_PARAMS, 95, 25); // 4
+  robot->movePoint(CHAR_PARAMS, 50, 15); // 5 = 9
+  robot->movePoint(CHAR_PARAMS, 50, 85); // 6 = 2
+  robot->movePoint(CHAR_PARAMS, 5, 75); // 7
+  robot->movePoint(CHAR_PARAMS, 5, 25); // 8
+  robot->movePoint(CHAR_PARAMS, 50, 15); // 9 = 5
+  robot->movePoint(CHAR_PARAMS, 50, 5); // 10
+
+  robot->marker_up();
+}
+
+
+function robot_fanuc::draw_S(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 95, 20); // 1
+  robot->movePoint(CHAR_PARAMS, 80, 5); // 2 
+  robot->movePoint(CHAR_PARAMS, 20, 5); // 3
+  robot->movePoint(CHAR_PARAMS, 5, 20); // 4
+  robot->movePoint(CHAR_PARAMS, 5, 40); // 5
+  robot->movePoint(CHAR_PARAMS, 95, 60); // 6
+  robot->movePoint(CHAR_PARAMS, 95, 80); // 7
+  robot->movePoint(CHAR_PARAMS, 80, 95); // 8
+  robot->movePoint(CHAR_PARAMS, 20, 95); // 9
+  robot->movePoint(CHAR_PARAMS, 5, 80); // 10
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_Yu(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 5); // 1
+  robot->movePoint(CHAR_PARAMS, 5, 95); // 2 
+
+  robot->setPoint(CHAR_PARAMS, 5, 50); // 3
+  robot->movePoint(CHAR_PARAMS, 25, 50); // 4
+
+  robot->movePoint(CHAR_PARAMS, 25, 80); // 5
+  robot->movePoint(CHAR_PARAMS, 40, 95); // 6
+  robot->movePoint(CHAR_PARAMS, 80, 95); // 7
+  robot->movePoint(CHAR_PARAMS, 95, 80); // 8
+  robot->movePoint(CHAR_PARAMS, 95, 20); // 9
+  robot->movePoint(CHAR_PARAMS, 80, 5); // 10
+  robot->movePoint(CHAR_PARAMS, 40, 5); // 11
+  robot->movePoint(CHAR_PARAMS, 25, 20); // 12
+  robot->movePoint(CHAR_PARAMS, 25, 50); // 13
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_Comm(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 50, 90); // 1
+  robot->movePoint(CHAR_PARAMS, 45, 95); // 2
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_Dot(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 50, 95); // 1
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_two_dots(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 50, 95); // 1
+
+  robot->setPoint(CHAR_PARAMS, 48, 55); // 1
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_Equal(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 80, 40); // 1
+  robot->movePoint(CHAR_PARAMS, 20, 40); // 2 
+
+  robot->setPoint(CHAR_PARAMS, 80, 60); // 1
+  robot->movePoint(CHAR_PARAMS, 20, 60); // 2 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_Minus(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 80, 50); // 1
+  robot->movePoint(CHAR_PARAMS, 20, 50); // 2 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_Roof(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 70, 25); // 1
+  robot->movePoint(CHAR_PARAMS, 50, 5); // 2 
+  robot->movePoint(CHAR_PARAMS, 30, 25); // 3 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_Exclamation(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 50, 95); // 1
+
+  robot->setPoint(CHAR_PARAMS, 50, 85); // 1
+  robot->movePoint(CHAR_PARAMS, 50, 5); // 2 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_Slash(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 5, 95); // 1
+  robot->movePoint(CHAR_PARAMS, 95, 5); // 2 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_line_6_points(x_0, y_0, x_size, y_size){
+  robot->setPoint(x_0, y_0, x_size, y_size, 95, 50); // 1
+  x_0 = x_0 - 150;
+  robot->movePoint(x_0, y_0, x_size, y_size, 5, 50); // 2 
+  y_0 = y_0 + 350;
+  robot->movePoint(x_0, y_0, x_size, y_size, 50, 50); // 3 
+  x_0 = x_0 + 150*6;
+  robot->movePoint(x_0, y_0, x_size, y_size, 95, 50); // 4 
+  y_0 = y_0 - 350;
+  robot->movePoint(x_0, y_0, x_size, y_size, 95, 50); // 5
+
+  x_0 = 250 + x_size*7;
+
+  robot->marker_up();
+}
+
+
+function main(){
+  system.echo("\nwork\n");
+
+  try{
+  
+    @fr = robot_fanuc;
+  
+  	@fr->set_integer_di("uframe", 4);
+  	@fr->set_integer_di("tool", 2);
+  	@fr->set_integer_di("payload", 4);
+  	@fr->set_real_di("speed", 100); 
+    
+	  system.echo("\n prepare\n");
+  	@fr->prepare(0,0,10,10);
+
+	  system.echo("\nStart move program\n");
+	  @fr->run_program_soft(8);	
+
+    system.echo("\n start draw\n");
+
+    x_0 = 250;
+    y_0 = 50;
+    x_size = 30;
+    y_size = 50;
+    offset = x_size + CHAR_OFFSET_MM;
+
+
+    @fr->draw_T(CHAR_PARAMS);
+    x_0 = x_0 + offset;
+    @fr->draw_H(CHAR_PARAMS);
+    x_0 = x_0 + offset;
+    @fr->draw_I(CHAR_PARAMS);
+    x_0 = x_0 + offset;
+    @fr->draw_S(CHAR_PARAMS);
+
+    x_0 = x_0 + 2*offset;
+    @fr->draw_I(CHAR_PARAMS);
+    x_0 = x_0 + offset;
+    @fr->draw_S(CHAR_PARAMS);
+
+    // rotate marker
+    @fr->set_real_di("speed", 10); 
+    @fr->rotateMarker();
+    @fr->set_real_di("speed", 100); 
+
+    x_0 = 100;
+    y_0 = 150;
+    x_size = 150;
+    y_size = 200;
+    offset = x_size;
+    @fr->draw_X(CHAR_PARAMS);
+    x_0 = x_0 + offset;
+    @fr->draw_O(CHAR_PARAMS);
+    x_0 = x_0 + offset;
+    @fr->draw_P(CHAR_PARAMS);
+    x_0 = x_0 + offset;
+    @fr->draw_O(CHAR_PARAMS);
+    x_0 = x_0 + offset;
+    @fr->draw_r_Sha(CHAR_PARAMS);
+    x_0 = x_0 + offset;
+    @fr->draw_O(CHAR_PARAMS);
+
+    x_0 = 200;
+    y_0 = 50;
+    x_size = 30;
+    y_size = 50;
+    @fr->draw_line_6_points(CHAR_PARAMS);
+
+    @fr->stop_soft_program();
+    
+    @fr->go_home();
+    delete @fr;  
+  } 
+  catch(E){
+    system.echo("Catch exception!\n");
+    return E;
+  }
+
+  system.echo("\nEnd\n");
+  return 0;
+}
