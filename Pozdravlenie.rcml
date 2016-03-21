@@ -1,0 +1,47 @@
+@fr->draw_r_D(0, 0);
+@fr->draw_O(1, 0);
+@fr->draw_P(2, 0);
+@fr->draw_O(3, 0);
+@fr->draw_r_Ge(4, 0);
+@fr->draw_r_I(5, 0);
+@fr->draw_E(6, 0);
+
+@fr->draw_r_D(8, 0);
+@fr->draw_A(9, 0);
+@fr->draw_M(10, 0);
+@fr->draw_r_y(11, 0);
+
+@fr->draw_r_P(0, 1);
+@fr->draw_O(1, 1);
+@fr->draw_r_Z(2, 1);
+@fr->draw_r_D(3, 1);
+@fr->draw_P(4, 1);
+@fr->draw_A(5, 1);
+@fr->draw_B(6, 1);
+@fr->draw_r_L(7, 1);
+@fr->draw_r_Ya(8, 1);
+@fr->draw_E(9, 1);
+@fr->draw_M(10, 1);
+
+@fr->draw_B(12, 1);
+@fr->draw_A(13, 1);
+@fr->draw_C(14, 1);
+
+@fr->draw_C(16, 1);
+
+@fr->draw_r_P(18, 1);
+@fr->draw_P(19, 1);
+@fr->draw_A(20, 1);
+@fr->draw_r_Z(21, 1);
+@fr->draw_r_D(22, 1);
+@fr->draw_H(23, 1);
+@fr->draw_r_I(24, 1);
+@fr->draw_K(25, 1);
+@fr->draw_O(26, 1);
+@fr->draw_M(27, 1);
+
+@fr->draw_M(29, 1);
+@fr->draw_A(30, 1);
+@fr->draw_P(31, 1);
+@fr->draw_T(32, 1);
+@fr->draw_A(33, 1);

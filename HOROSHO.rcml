@@ -31,7 +31,7 @@ function calculate_absolute_coords_x(x_0, x_size, x_percent){
 }
 
 function calculate_absolute_coords_y(y_0, y_size, y_precent){
-  y_current = y_0 + CHAR_HEIGHT_MM*(y_precent/100);
+  y_current = y_0 + y_size*(y_precent/100);
   return y_current;
 }
 
@@ -122,15 +122,15 @@ function robot_fanuc::marker_move(x,y){
   }
 }
 
-function robot_fanuc::draw_line(x1_cell, x2_cell, y_cell){
-  robot->setPoint(x1_cell, y_cell, 5, 50);
-  robot->movePoint(x2_cell, y_cell, 95, 50);
-  robot->marker_up();
-}
+//function robot_fanuc::draw_line(x1_cell, x2_cell, y_cell){
+//  //robot->setPoint(x1_cell, y_cell, 5, 50);
+//  //robot->movePoint(x2_cell, y_cell, 95, 50);
+//  robot->marker_up();
+//}
 
 function robot_fanuc::setPoint(CHAR_PARAMS, x_percent, y_precent){
-  x = calculate_absolute_coords_x(x_cell, x_percent);
-  y = calculate_absolute_coords_y(y_cell, y_precent);
+  x = calculate_absolute_coords_x(x_0, x_size, x_percent);
+  y = calculate_absolute_coords_y(y_0, y_size, y_precent);
  
   robot->marker_up();
   robot->marker_move(x,y);
@@ -138,8 +138,8 @@ function robot_fanuc::setPoint(CHAR_PARAMS, x_percent, y_precent){
 }
 
 function robot_fanuc::movePoint(CHAR_PARAMS, x_percent, y_precent){
-  x = calculate_absolute_coords_x(x_cell, x_percent);
-  y = calculate_absolute_coords_y(y_cell, y_precent);
+  x = calculate_absolute_coords_x(x_0, x_size, x_percent);
+  y = calculate_absolute_coords_y(y_0, y_size, y_precent);
   
   robot->marker_move(x,y);
 }
@@ -801,18 +801,40 @@ function robot_fanuc::draw_Slash(CHAR_PARAMS){
   robot->marker_up();
 }
 
+function robot_fanuc::draw_8(CHAR_PARAMS){
+  robot->setPoint(CHAR_PARAMS, 20, 50); // 1
+  robot->movePoint(CHAR_PARAMS, 5, 65); // 2
+  robot->movePoint(CHAR_PARAMS, 5, 80); // 3
+  robot->movePoint(CHAR_PARAMS, 20, 95); // 4
+  robot->movePoint(CHAR_PARAMS, 80, 95); // 5
+  robot->movePoint(CHAR_PARAMS, 95, 80); // 6
+  robot->movePoint(CHAR_PARAMS, 95, 65); // 7
+  robot->movePoint(CHAR_PARAMS, 80, 50); // 8
+  robot->movePoint(CHAR_PARAMS, 20, 50); // 9
+
+  robot->movePoint(CHAR_PARAMS, 5, 35); // 10
+  robot->movePoint(CHAR_PARAMS, 5, 20); // 11
+  robot->movePoint(CHAR_PARAMS, 20, 5); // 12
+  robot->movePoint(CHAR_PARAMS, 80, 5); // 13
+  robot->movePoint(CHAR_PARAMS, 95, 20); // 14
+  robot->movePoint(CHAR_PARAMS, 95, 35); // 15
+  robot->movePoint(CHAR_PARAMS, 80, 50); // 16
+
+  robot->marker_up();
+}
+
 function robot_fanuc::draw_line_6_points(x_0, y_0, x_size, y_size){
   robot->setPoint(x_0, y_0, x_size, y_size, 95, 50); // 1
   x_0 = x_0 - 150;
   robot->movePoint(x_0, y_0, x_size, y_size, 5, 50); // 2 
   y_0 = y_0 + 350;
   robot->movePoint(x_0, y_0, x_size, y_size, 50, 50); // 3 
-  x_0 = x_0 + 150*6;
+  x_0 = x_0 + 150*7;
   robot->movePoint(x_0, y_0, x_size, y_size, 95, 50); // 4 
   y_0 = y_0 - 350;
   robot->movePoint(x_0, y_0, x_size, y_size, 95, 50); // 5
-
   x_0 = 250 + x_size*7;
+  robot->movePoint(x_0, y_0, x_size, y_size, 95, 50); // 6
 
   robot->marker_up();
 }
@@ -839,7 +861,7 @@ function main(){
     system.echo("\n start draw\n");
 
     x_0 = 250;
-    y_0 = 50;
+    y_0 = 150;
     x_size = 30;
     y_size = 50;
     offset = x_size + CHAR_OFFSET_MM;
@@ -858,16 +880,20 @@ function main(){
     x_0 = x_0 + offset;
     @fr->draw_S(CHAR_PARAMS);
 
+    x_0 = 100;
+    y_0 = 250;
+    x_size = 150;
+    y_size = 200;
+    offset = x_size;
+
+    @fr->marker_move(x_0, y_0);
+
     // rotate marker
     @fr->set_real_di("speed", 10); 
     @fr->rotateMarker();
     @fr->set_real_di("speed", 100); 
 
-    x_0 = 100;
-    y_0 = 150;
-    x_size = 150;
-    y_size = 200;
-    offset = x_size;
+    
     @fr->draw_X(CHAR_PARAMS);
     x_0 = x_0 + offset;
     @fr->draw_O(CHAR_PARAMS);
