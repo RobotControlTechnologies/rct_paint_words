@@ -81,8 +81,7 @@ if sys.argv[1] == "" or sys.argv[2] == "":
 input_file = open(sys.argv[1], 'r');
 output_file = open(sys.argv[2], 'w');
 
-rcml_include = "include \"chars_config.rcml\"\n\
-include \"chars.rcml\"\n"
+rcml_include = "include \"chars.rcml\"\n"
 
 rcml_function_main = "function main(){\n\
   try {\n\

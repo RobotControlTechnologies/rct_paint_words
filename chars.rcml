@@ -1,5 +1,6 @@
-// CODE
+include "chars_config.rcml"
 
+// CODE
 function calculate_absolute_coords_x(x_cell, x_percent){
   x_len = CHAR_HEIGHT_MM*(CHAR_WIDTH_PERCENT/100);
   x0 = x_cell*(x_len + CHAR_OFFSET_MM); // ADD HARDCODE OFFSET
