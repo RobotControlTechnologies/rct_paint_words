@@ -67,7 +67,7 @@ def writeRCMLFunction(_line, _file, row_number):
 	pass
 
 def printUseMessage():
-	print "Use: string_parse_to_rcml_chars.py \"input_string(uppercase)\" output_file [row_number]"
+	print "Use: string_parse_to_rcml_chars.py input_file output_file"
 	pass
 
 if len(sys.argv) < 3:
@@ -78,10 +78,10 @@ if sys.argv[1] == "" or sys.argv[2] == "":
 	printUseMessage();
 	raise SystemExit;
 
+input_file = open(sys.argv[1], 'r');
 output_file = open(sys.argv[2], 'w');
 
-rcml_include = "include \"chars.rcml\"\n\
-include \"chars_config.rcml\"\n"
+rcml_include = "include \"chars.rcml\"\n"
 
 rcml_function_main = "function main(){\n\
   try {\n\
@@ -98,14 +98,15 @@ rcml_function_main = "function main(){\n\
 
 output_file.write(rcml_include + rcml_function_main);
 
-row_number = 0;
-if len(sys.argv) > 3:
-	if sys.argv[3] != "":
-		row_number = int(sys.argv[3]);
+row_number = 0
+for line in input_file:
+	writeRCMLFunction(line.decode('utf-8'), output_file, row_number);
+	row_number = row_number + 1;
+	pass
 
-writeRCMLFunction(sys.argv[1].decode('utf-8'), output_file, row_number);
-
-rcml_function_main_end = "  } catch(E){\n\
+rcml_function_main_end = "\n    @fr->stop_soft_program();\n\
+    @fr->go_home();\n\
+  } catch(E){\n\
     system.echo(\"Exception catched!\");\n\
     return E;\n\
   }\n\

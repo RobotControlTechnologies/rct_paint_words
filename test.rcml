@@ -1,5 +1,4 @@
 include "chars.rcml"
-include "chars_config.rcml"
 function main(){
   try {
     @fr = robot_fanuc;
@@ -13,12 +12,22 @@ function main(){
 	@fr->run_program_soft(UNIVERSAL_MOVE_PNS);
     system.echo("start draw\n");
 
-    @fr->draw_T(0, 0);
-    @fr->draw_E(1, 0);
-    @fr->draw_S(2, 0);
-    @fr->draw_T(3, 0);
-
+    @fr->draw_r_P(0, 0);
+    @fr->draw_P(1, 0);
+    @fr->draw_r_I(2, 0);
+    @fr->draw_B(3, 0);
+    @fr->draw_E(4, 0);
     @fr->draw_T(5, 0);
+    @fr->draw_Comm(6, 0);
+
+    @fr->draw_r_L(8, 0);
+    @fr->draw_r_Yu(9, 0);
+    @fr->draw_r_D(10, 0);
+    @fr->draw_r_I(11, 0);
+    @fr->draw_Exclamation(12, 0);
+
+    @fr->stop_soft_program();
+    @fr->go_home();
   } catch(E){
     system.echo("Exception catched!");
     return E;
