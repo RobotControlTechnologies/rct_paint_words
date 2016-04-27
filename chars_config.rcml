@@ -1,0 +1,11 @@
+// CONFIG
+define UFRAME 4
+define UTOOL 2
+define PAYLOAD 4
+define SPEED 100
+
+define UNIVERSAL_MOVE_PNS 8
+
+function tmp_char_config_function(){
+  system.echo("tmp_char_config_function\n");
+}

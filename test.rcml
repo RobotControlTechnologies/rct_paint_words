@@ -1,0 +1,27 @@
+include "chars.rcml"
+include "chars_config.rcml"
+function main(){
+  try {
+    @fr = robot_fanuc;
+    @fr->set_integer_di("uframe", UFRAME);
+    @fr->set_integer_di("tool", UTOOL);
+    @fr->set_integer_di("payload", PAYLOAD);
+    @fr->set_real_di("speed", SPEED);
+    system.echo("prepare\n");
+  	@fr->prepare();
+	system.echo("Start move program\n");
+	@fr->run_program_soft(UNIVERSAL_MOVE_PNS);
+    system.echo("start draw\n");
+
+    @fr->draw_T(0, 0);
+    @fr->draw_E(1, 0);
+    @fr->draw_S(2, 0);
+    @fr->draw_T(3, 0);
+
+    @fr->draw_T(5, 0);
+  } catch(E){
+    system.echo("Exception catched!");
+    return E;
+  }
+  return 0;
+}
