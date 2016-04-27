@@ -1,9 +1,10 @@
 
 # -*- coding: utf-8 -*-
+import sys
 
 eng_letters = u'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-def returnSymbolName(letter,i,j):
+def returnSymbolName(letter):
 	if letter in eng_letters:
 		return letter;
 	else :
@@ -56,21 +57,58 @@ def returnSymbolName(letter,i,j):
 
 
 def writeRCMLFunction(_line, _file, row_number):
-	for letter in xrange(0,len(_line)):
+	for letter_position in xrange(0,len(_line)):
 		res_string = "\n";
-		symbol = returnSymbolName(_line[letter], letter, row_number);
+		symbol = returnSymbolName(_line[letter_position]);
 		if symbol != " ":
-			res_string = "@fr->draw_" + symbol + "(" + str(letter) + ", " + str(row_number) + ");\n";
+			res_string = "    @fr->draw_" + symbol + "(" + str(letter_position) + ", " + str(row_number) + ");\n";
 		_file.write(res_string);
 		pass
 	pass
 
-
-input_file = open('input_text.txt', 'r');
-_file = open('text.txt', 'w');
-row_num = 0
-for line in input_file:
-	writeRCMLFunction(line.decode('utf-8'), _file, row_num);
-	row_num = row_num + 1;
+def printUseMessage():
+	print "Use: string_parse_to_rcml_chars.py \"input_string(uppercase)\" output_file [row_number]"
 	pass
 
+if len(sys.argv) < 3:
+	printUseMessage();
+	raise SystemExit;
+if sys.argv[1] == "" or sys.argv[2] == "":
+	print "Error: Wrong argument";
+	printUseMessage();
+	raise SystemExit;
+
+output_file = open(sys.argv[2], 'w');
+
+rcml_include = "include \"chars.rcml\"\n\
+include \"chars_config.rcml\"\n"
+
+rcml_function_main = "function main(){\n\
+  try {\n\
+    @fr = robot_fanuc;\n\
+    @fr->set_integer_di(\"uframe\", UFRAME);\n\
+    @fr->set_integer_di(\"tool\", UTOOL);\n\
+    @fr->set_integer_di(\"payload\", PAYLOAD);\n\
+    @fr->set_real_di(\"speed\", SPEED);\n\
+    system.echo(\"prepare\\n\");\n\
+  	@fr->prepare();\n\
+	system.echo(\"Start move program\\n\");\n\
+	@fr->run_program_soft(UNIVERSAL_MOVE_PNS);\n\
+    system.echo(\"start draw\\n\");\n\n" 
+
+output_file.write(rcml_include + rcml_function_main);
+
+row_number = 0;
+if len(sys.argv) > 3:
+	if sys.argv[3] != "":
+		row_number = int(sys.argv[3]);
+
+writeRCMLFunction(sys.argv[1].decode('utf-8'), output_file, row_number);
+
+rcml_function_main_end = "  } catch(E){\n\
+    system.echo(\"Exception catched!\");\n\
+    return E;\n\
+  }\n\
+  return 0;\n\
+}\n";
+output_file.write(rcml_function_main_end);
