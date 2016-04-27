@@ -1,26 +1,3 @@
-// CONFIG
-define CHAR_WIDTH_PERCENT 60
-define CHAR_HEIGHT_MM 50
-define SAFE_Z -20
-define START_Z 0
-define BORDER_Y 120
-define BORDER_X 75
-
-define ON  1
-define OFF 0
-define _SIGNAL_PAUSE_MILLISEC 50
-define _OFF_PAUSE_MILLISEC 200
-
-define START_W -179.707
-define START_P -2.500
-define START_R 103.269
-
-define SECOND_W -179.704
-define SECOND_P -2.514
-define SECOND_R -14.699
-
-define CHAR_OFFSET_MM 4
-
 // CODE
 
 function calculate_absolute_coords_x(x_cell, x_percent){
