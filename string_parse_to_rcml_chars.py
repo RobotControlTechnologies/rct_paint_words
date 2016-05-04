@@ -86,10 +86,10 @@ rcml_include = "include \"chars.rcml\"\n"
 rcml_function_main = "function main(){\n\
   try {\n\
     @fr = robot_fanuc;\n\
-	system.echo(\"Start move program\\n\");\n\
-	@fr->startProgram(UFRAME, UTOOL, PAYLOAD);\n\
-	system.echo(\"prepare\\n\");\n\
-  	@fr->prepare();\n\
+    system.echo(\"Start move program\\n\");\n\
+    @fr->startProgram(UFRAME, UTOOL, PAYLOAD);\n\
+    system.echo(\"prepare\\n\");\n\
+    @fr->prepare();\n\
     system.echo(\"start draw\\n\");\n\n" 
 
 output_file.write(rcml_include + rcml_function_main);
