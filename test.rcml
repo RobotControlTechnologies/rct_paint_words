@@ -2,14 +2,10 @@ include "chars.rcml"
 function main(){
   try {
     @fr = robot_fanuc;
-    @fr->set_integer_di("uframe", UFRAME);
-    @fr->set_integer_di("tool", UTOOL);
-    @fr->set_integer_di("payload", PAYLOAD);
-    @fr->set_real_di("speed", SPEED);
-    system.echo("prepare\n");
-  	@fr->prepare();
 	system.echo("Start move program\n");
-	@fr->run_program_soft(UNIVERSAL_MOVE_PNS);
+	@fr->startProgram(UFRAME, UTOOL, PAYLOAD);
+	system.echo("prepare\n");
+  	@fr->prepare();
     system.echo("start draw\n");
 
     @fr->draw_r_P(0, 0);
@@ -26,7 +22,7 @@ function main(){
     @fr->draw_r_I(11, 0);
     @fr->draw_Exclamation(12, 0);
 
-    @fr->stop_soft_program();
+    @fr->stopProgram();
     @fr->go_home();
   } catch(E){
     system.echo("Exception catched!");
