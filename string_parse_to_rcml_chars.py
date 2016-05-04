@@ -87,6 +87,8 @@ rcml_function_main = "function main(){\n\
   try {\n\
     @fr = robot_fanuc;\n\
     system.echo(\"Start move program\\n\");\n\
+    @fr->set_real_di(\"speed\", SPEED);\n\
+    @fr->set_real_di(\"cnt\", CNT);\n\
     @fr->startProgram(UFRAME, UTOOL, PAYLOAD);\n\
     system.echo(\"prepare\\n\");\n\
     @fr->prepare();\n\
