@@ -86,14 +86,10 @@ rcml_include = "include \"chars.rcml\"\n"
 rcml_function_main = "function main(){\n\
   try {\n\
     @fr = robot_fanuc;\n\
-    @fr->set_integer_di(\"uframe\", UFRAME);\n\
-    @fr->set_integer_di(\"tool\", UTOOL);\n\
-    @fr->set_integer_di(\"payload\", PAYLOAD);\n\
-    @fr->set_real_di(\"speed\", SPEED);\n\
-    system.echo(\"prepare\\n\");\n\
-  	@fr->prepare();\n\
 	system.echo(\"Start move program\\n\");\n\
-	@fr->run_program_soft(UNIVERSAL_MOVE_PNS);\n\
+	@fr->startProgram(UFRAME, UTOOL, PAYLOAD);\n\
+	system.echo(\"prepare\\n\");\n\
+  	@fr->prepare();\n\
     system.echo(\"start draw\\n\");\n\n" 
 
 output_file.write(rcml_include + rcml_function_main);
@@ -104,7 +100,7 @@ for line in input_file:
 	row_number = row_number + 1;
 	pass
 
-rcml_function_main_end = "\n    @fr->stop_soft_program();\n\
+rcml_function_main_end = "\n    @fr->stopProgram();\n\
     @fr->go_home();\n\
   } catch(E){\n\
     system.echo(\"Exception catched!\");\n\
