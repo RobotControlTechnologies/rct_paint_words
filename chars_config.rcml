@@ -29,11 +29,12 @@ define SECOND_R -14.699   // Рыскание
 
 define CHAR_OFFSET_MM 4  // Отступ между буквами
 
-define UFRAME 4   // Номер стола
-define UTOOL 2    // Номер инструмента
-define PAYLOAD 4  // Номер нагрузки
-define SPEED 100  // Скорость
-define CNT 0      // Параметр сглаженности перемещения
+define UFRAME 4     // Номер стола
+define UTOOL 2      // Номер инструмента
+define PAYLOAD 4    // Номер нагрузки
+define SPEED 100    // Скорость
+define CNT 0        // Параметр сглаженности перемещения
+define ROTATE_SPEED // Скорость при повороте
 
 define HOME_PNS 4  // Номер PNS программы перехода в домашнюю позицию
 
