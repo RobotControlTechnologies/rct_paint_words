@@ -1,9 +1,9 @@
 // CONFIG
-define CHAR_HEIGHT_MM 50      // высота символов в мм
-define CHAR_WIDTH_PERCENT 60  // ширина символов в процентах от высоты
+define CHAR_HEIGHT_MM 50      // Высота символов в мм
+define CHAR_WIDTH_PERCENT 60  // Ширина символов в процентах от высоты
 
 define SAFE_Z -20  // Безопасное положение наконечника маркера по оси z
-define START_Z 0   // Рабочая положение наконечника маркера по оси z
+define START_Z 0   // Рабочее положение наконечника маркера по оси z
 
 // Границы рабочей зоны
 define BORDER_Y 120
@@ -17,7 +17,7 @@ define OFF 0
 define _SIGNAL_PAUSE_MILLISEC 50
 define _OFF_PAUSE_MILLISEC 200
 
-// углы эйлера начального положения маркера
+// Углы эйлера начального положения маркера
 define START_W -179.707  // Крен
 define START_P -2.500    // Тангаж
 define START_R 103.269   // Рыскание
@@ -27,12 +27,12 @@ define SECOND_W -179.704  // Крен
 define SECOND_P -2.514    // Тангаж
 define SECOND_R -14.699   // Рыскание
 
-define CHAR_OFFSET_MM 4  // отступ между буквами
+define CHAR_OFFSET_MM 4  // Отступ между буквами
 
-define UFRAME 4   // Номерстола
-define UTOOL 2    // номер инструмента
+define UFRAME 4   // Номер стола
+define UTOOL 2    // Номер инструмента
 define PAYLOAD 4  // Номер нагрузки
-define SPEED 100  // скорость
+define SPEED 100  // Скорость
 define CNT 0      // Параметр сглаженности перемещения
 
 define HOME_PNS 4  // Номер PNS программы перехода в домашнюю позицию
