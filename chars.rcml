@@ -1,0 +1,714 @@
+include "chars_config.rcml"
+include_lib move_lib "fanuc_universal_move_library_RCT.rcml.pc"
+
+function calculate_absolute_coords_x(x_cell, x_percent){
+  x_len = CHAR_HEIGHT_MM*(CHAR_WIDTH_PERCENT/100);
+  x0 = x_cell*(x_len + CHAR_OFFSET_MM); 
+  x_current = x0 + x_len*(x_percent/100);
+  return x_current;
+}
+
+function calculate_absolute_coords_y(y_cell,y_precent){
+  y0 = y_cell*CHAR_HEIGHT_MM;
+  y_current = y0 + CHAR_HEIGHT_MM*(y_precent/100);
+  return y_current;
+}
+
+function robot_fanuc::marker_up(){
+  robot->set_real_di("z", SAFE_Z);
+  er = robot->sendMoveSignal();
+  if (er != 0){
+    system.echo("error marker up\n");
+    throw er;
+  }
+}
+
+function robot_fanuc::marker_down(){ 
+  robot->set_real_di("z", START_Z);
+  er = robot->sendMoveSignal();
+  if (er != 0){
+    system.echo("error marker down\n");
+    throw er;
+  }
+}
+
+function robot_fanuc::marker_move(x,y){
+  robot->set_real_di("x", x);
+  robot->set_real_di("y", y);
+  er = robot->sendMoveSignal();
+  if (er != 0){
+    system.echo("error marker move\n");
+    throw er;
+  }
+}
+
+function robot_fanuc::draw_line(x1_cell, x2_cell, y_cell){
+  robot->setPoint(x1_cell, y_cell, 5, 50);
+  robot->movePoint(x2_cell, y_cell, 95, 50);
+  robot->marker_up();
+}
+
+function robot_fanuc::setPoint(x_cell, y_cell, x_percent, y_precent){
+  x = calculate_absolute_coords_x(x_cell, x_percent);
+  y = calculate_absolute_coords_y(y_cell, y_precent);
+ 
+  robot->marker_up();
+  robot->marker_move(x,y);
+  robot->marker_down();
+}
+
+function robot_fanuc::movePoint(x_cell, y_cell, x_percent, y_precent){
+  x = calculate_absolute_coords_x(x_cell, x_percent);
+  y = calculate_absolute_coords_y(y_cell, y_precent);
+  
+  robot->marker_move(x,y);
+}
+
+function robot_fanuc::prepare(){
+  x = calculate_absolute_coords_x(0, 0);
+  y = calculate_absolute_coords_y(0, 0);
+  robot->jointMoveToCartesianPoint(x, y, SAFE_Z, START_W, START_P, START_R, SPEED, CNT);
+}
+
+function robot_fanuc::go_home(){
+  robot->marker_up();
+  robot->run_program(HOME_PNS);
+}
+
+function robot_fanuc::rotateMarker(){
+  robot->set_real_di("z", SAFE_Z);
+  robot->set_real_di("w", SECOND_W);
+  robot->set_real_di("p", SECOND_P);
+  robot->set_real_di("r", SECOND_R);
+
+  robot->sendMoveSignal();
+}
+
+
+function robot_fanuc::draw_A(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 95);
+  robot->movePoint(x_cell, y_cell, 50, 5);
+  robot->movePoint(x_cell, y_cell, 95, 95);
+  robot->setPoint(x_cell, y_cell, 35, 50);
+  robot->movePoint(x_cell, y_cell, 65, 50);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_Ge(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 95);
+  robot->movePoint(x_cell, y_cell, 5, 5);
+  robot->movePoint(x_cell, y_cell, 95, 5);
+  robot->movePoint(x_cell, y_cell, 95, 10);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_D(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 95);
+  robot->movePoint(x_cell, y_cell, 5, 75);
+  robot->movePoint(x_cell, y_cell, 95, 75);
+  robot->movePoint(x_cell, y_cell, 95, 95);
+
+  robot->setPoint(x_cell, y_cell, 75, 75);
+  robot->movePoint(x_cell, y_cell, 65, 5);
+  robot->movePoint(x_cell, y_cell, 35, 5);
+  robot->movePoint(x_cell, y_cell, 25, 75);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_E(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 95, 95);
+  robot->movePoint(x_cell, y_cell, 5, 95);
+  robot->movePoint(x_cell, y_cell, 5, 5);
+  robot->movePoint(x_cell, y_cell, 95, 5);
+
+  robot->setPoint(x_cell, y_cell, 5, 50);
+  robot->movePoint(x_cell, y_cell, 95, 50);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_Je(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 5);
+  robot->movePoint(x_cell, y_cell, 95, 95);
+
+  robot->setPoint(x_cell, y_cell, 50, 95);
+  robot->movePoint(x_cell, y_cell, 50, 5);
+
+  robot->setPoint(x_cell, y_cell, 95, 5);
+  robot->movePoint(x_cell, y_cell, 5, 95);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_I(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 5);
+  robot->movePoint(x_cell, y_cell, 5, 95);
+  robot->movePoint(x_cell, y_cell, 95, 5);
+  robot->movePoint(x_cell, y_cell, 95, 95);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_Ii(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 5);
+  robot->movePoint(x_cell, y_cell, 5, 95);
+  robot->movePoint(x_cell, y_cell, 95, 5);
+  robot->movePoint(x_cell, y_cell, 95, 95);
+
+  robot->setPoint(x_cell, y_cell, 45, 5);
+  robot->movePoint(x_cell, y_cell, 50, 10);
+  robot->movePoint(x_cell, y_cell, 55, 5);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_L(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 95);
+  robot->movePoint(x_cell, y_cell, 50, 5);
+  robot->movePoint(x_cell, y_cell, 95, 95);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_K(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 5);
+  robot->movePoint(x_cell, y_cell, 5, 95);
+
+  robot->setPoint(x_cell, y_cell, 95, 95);
+  robot->movePoint(x_cell, y_cell, 5, 50);
+  robot->movePoint(x_cell, y_cell, 95, 5);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_M(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 95);
+  robot->movePoint(x_cell, y_cell, 5, 5);
+  robot->movePoint(x_cell, y_cell, 50, 60);
+  robot->movePoint(x_cell, y_cell, 95, 5);
+  robot->movePoint(x_cell, y_cell, 95, 95);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_N(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 95);
+  robot->movePoint(x_cell, y_cell, 5, 5);
+  robot->movePoint(x_cell, y_cell, 95, 95);
+  robot->movePoint(x_cell, y_cell, 95, 5);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_H(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 5);
+  robot->movePoint(x_cell, y_cell, 5, 95);
+
+  robot->setPoint(x_cell, y_cell, 5, 50);
+  robot->movePoint(x_cell, y_cell, 95, 50);
+
+  robot->setPoint(x_cell, y_cell, 95, 95);
+  robot->movePoint(x_cell, y_cell, 95, 5);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_P(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 95);
+  robot->movePoint(x_cell, y_cell, 5, 5);
+  robot->movePoint(x_cell, y_cell, 95, 5);
+  robot->movePoint(x_cell, y_cell, 95, 95);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_T(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 50, 95);
+  robot->movePoint(x_cell, y_cell, 50, 5);
+
+  robot->setPoint(x_cell, y_cell, 5, 5);
+  robot->movePoint(x_cell, y_cell, 95, 5);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_U(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 95);
+  robot->movePoint(x_cell, y_cell, 95, 5);
+
+  robot->setPoint(x_cell, y_cell, 50, 50);
+  robot->movePoint(x_cell, y_cell, 5, 5);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_X(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 5);
+  robot->movePoint(x_cell, y_cell, 95, 95);
+
+  robot->setPoint(x_cell, y_cell, 5, 95);
+  robot->movePoint(x_cell, y_cell, 95, 5);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_Ce(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 5);
+  robot->movePoint(x_cell, y_cell, 5, 85);
+  robot->movePoint(x_cell, y_cell, 95, 85);
+  robot->movePoint(x_cell, y_cell, 95, 95);
+
+  robot->setPoint(x_cell, y_cell, 85, 85);
+  robot->movePoint(x_cell, y_cell, 85, 5);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_Sha(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 5);
+  robot->movePoint(x_cell, y_cell, 5, 95);
+  robot->movePoint(x_cell, y_cell, 95, 95);
+  robot->movePoint(x_cell, y_cell, 95, 5);
+
+  robot->setPoint(x_cell, y_cell, 50, 95);
+  robot->movePoint(x_cell, y_cell, 50, 10);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_Shya(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 5);
+  robot->movePoint(x_cell, y_cell, 5, 85);
+  robot->movePoint(x_cell, y_cell, 95, 85);
+  robot->movePoint(x_cell, y_cell, 95, 95);
+
+  robot->setPoint(x_cell, y_cell, 85, 85);
+  robot->movePoint(x_cell, y_cell, 85, 5);
+
+  robot->setPoint(x_cell, y_cell, 40, 15);
+  robot->movePoint(x_cell, y_cell, 40, 85);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_Che(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 95, 95);
+  robot->movePoint(x_cell, y_cell, 95, 5);
+
+  robot->setPoint(x_cell, y_cell, 95, 50);
+  robot->movePoint(x_cell, y_cell, 5, 50);
+  robot->movePoint(x_cell, y_cell, 5, 5);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_F(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 95);
+  robot->movePoint(x_cell, y_cell, 5, 5);
+  robot->movePoint(x_cell, y_cell, 95, 5);
+
+  robot->setPoint(x_cell, y_cell, 5, 50);
+  robot->movePoint(x_cell, y_cell, 95, 50);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_L(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 5);
+  robot->movePoint(x_cell, y_cell, 5, 95);
+  robot->movePoint(x_cell, y_cell, 95, 95);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_V(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 5);
+  robot->movePoint(x_cell, y_cell, 50, 95);
+  robot->movePoint(x_cell, y_cell, 95, 95);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_W(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 5);
+  robot->movePoint(x_cell, y_cell, 25, 95);
+  robot->movePoint(x_cell, y_cell, 50, 60);
+  robot->movePoint(x_cell, y_cell, 75, 95);
+  robot->movePoint(x_cell, y_cell, 95, 5);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_Y(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 5);
+  robot->movePoint(x_cell, y_cell, 50, 50);
+  robot->movePoint(x_cell, y_cell, 95, 5);
+
+  robot->setPoint(x_cell, y_cell, 50, 50);
+  robot->movePoint(x_cell, y_cell, 50, 95);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_Z(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 5);
+  robot->movePoint(x_cell, y_cell, 95, 5);
+  robot->movePoint(x_cell, y_cell, 5, 95);
+  robot->movePoint(x_cell, y_cell, 95, 95);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_I(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 25, 5);
+  robot->movePoint(x_cell, y_cell, 75, 5);
+
+  robot->setPoint(x_cell, y_cell, 50, 5);
+  robot->movePoint(x_cell, y_cell, 50, 95);
+
+  robot->setPoint(x_cell, y_cell, 25, 95);
+  robot->movePoint(x_cell, y_cell, 75, 95);
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_B(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 95, 5); 
+  robot->movePoint(x_cell, y_cell, 5, 5); 
+  robot->movePoint(x_cell, y_cell, 5, 95); 
+  robot->movePoint(x_cell, y_cell, 95, 85); 
+  robot->movePoint(x_cell, y_cell, 95, 60); 
+  robot->movePoint(x_cell, y_cell, 5, 50); 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_B(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 5); 
+  robot->movePoint(x_cell, y_cell, 5, 95); 
+  robot->movePoint(x_cell, y_cell, 95, 85); 
+  robot->movePoint(x_cell, y_cell, 95, 60); 
+  robot->movePoint(x_cell, y_cell, 5, 50); 
+  robot->movePoint(x_cell, y_cell, 95, 40); 
+  robot->movePoint(x_cell, y_cell, 95, 15); 
+  robot->movePoint(x_cell, y_cell, 5, 5); 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_Z(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 20); 
+  robot->movePoint(x_cell, y_cell, 20, 5); 
+  robot->movePoint(x_cell, y_cell, 80, 5); 
+  robot->movePoint(x_cell, y_cell, 95, 20); 
+
+  robot->movePoint(x_cell, y_cell, 95, 45); 
+  robot->movePoint(x_cell, y_cell, 50, 50); 
+  robot->movePoint(x_cell, y_cell, 95, 55); 
+
+  robot->movePoint(x_cell, y_cell, 95, 80); 
+  robot->movePoint(x_cell, y_cell, 80, 95); 
+  robot->movePoint(x_cell, y_cell, 20, 95); 
+  robot->movePoint(x_cell, y_cell, 5, 80); 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_O(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 95, 20); 
+  robot->movePoint(x_cell, y_cell, 80, 5); 
+  robot->movePoint(x_cell, y_cell, 20, 5); 
+  robot->movePoint(x_cell, y_cell, 5, 20); 
+
+  robot->movePoint(x_cell, y_cell, 5, 80); 
+  robot->movePoint(x_cell, y_cell, 20, 95); 
+  robot->movePoint(x_cell, y_cell, 80, 95); 
+  robot->movePoint(x_cell, y_cell, 95, 80); 
+  robot->movePoint(x_cell, y_cell, 95, 20); 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_C(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 95, 20); 
+  robot->movePoint(x_cell, y_cell, 80, 5); 
+  robot->movePoint(x_cell, y_cell, 20, 5); 
+  robot->movePoint(x_cell, y_cell, 5, 20); 
+
+  robot->movePoint(x_cell, y_cell, 5, 80); 
+  robot->movePoint(x_cell, y_cell, 20, 95); 
+  robot->movePoint(x_cell, y_cell, 80, 95); 
+  robot->movePoint(x_cell, y_cell, 95, 80); 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_G(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 95, 20); 
+  robot->movePoint(x_cell, y_cell, 80, 5); 
+  robot->movePoint(x_cell, y_cell, 20, 5); 
+  robot->movePoint(x_cell, y_cell, 5, 20); 
+
+  robot->movePoint(x_cell, y_cell, 5, 80); 
+  robot->movePoint(x_cell, y_cell, 20, 95); 
+  robot->movePoint(x_cell, y_cell, 80, 95); 
+  robot->movePoint(x_cell, y_cell, 95, 80); 
+
+  robot->movePoint(x_cell, y_cell, 95, 65); 
+  robot->movePoint(x_cell, y_cell, 75, 65); 
+  robot->movePoint(x_cell, y_cell, 75, 75); 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_Q(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 95, 20); 
+  robot->movePoint(x_cell, y_cell, 80, 5); 
+  robot->movePoint(x_cell, y_cell, 20, 5); 
+  robot->movePoint(x_cell, y_cell, 5, 20); 
+
+  robot->movePoint(x_cell, y_cell, 5, 80); 
+  robot->movePoint(x_cell, y_cell, 20, 95); 
+  robot->movePoint(x_cell, y_cell, 80, 95); 
+  robot->movePoint(x_cell, y_cell, 95, 80); 
+  robot->movePoint(x_cell, y_cell, 95, 20); 
+
+  robot->setPoint(x_cell, y_cell, 75, 75); 
+  robot->movePoint(x_cell, y_cell, 95, 95); 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_U(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 5);    
+  robot->movePoint(x_cell, y_cell, 5, 80);  
+  robot->movePoint(x_cell, y_cell, 20, 95); 
+  robot->movePoint(x_cell, y_cell, 80, 95); 
+  robot->movePoint(x_cell, y_cell, 95, 80); 
+  robot->movePoint(x_cell, y_cell, 95, 5);  
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_J(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 70);    
+  robot->movePoint(x_cell, y_cell, 5, 80);  
+  robot->movePoint(x_cell, y_cell, 20, 95); 
+  robot->movePoint(x_cell, y_cell, 80, 95); 
+  robot->movePoint(x_cell, y_cell, 95, 80); 
+  robot->movePoint(x_cell, y_cell, 95, 5);  
+  robot->movePoint(x_cell, y_cell, 65, 5);  
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_P(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 95);   
+  robot->movePoint(x_cell, y_cell, 5, 5);   
+  robot->movePoint(x_cell, y_cell, 95, 15); 
+  robot->movePoint(x_cell, y_cell, 95, 40); 
+  robot->movePoint(x_cell, y_cell, 5, 50);  
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_soft_sign(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 5); 
+  robot->movePoint(x_cell, y_cell, 5, 95); 
+  robot->movePoint(x_cell, y_cell, 95, 85); 
+  robot->movePoint(x_cell, y_cell, 95, 60); 
+  robot->movePoint(x_cell, y_cell, 5, 50); 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_hard_sign(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 5); 
+  robot->movePoint(x_cell, y_cell, 15, 5); 
+  robot->movePoint(x_cell, y_cell, 15, 95); 
+  robot->movePoint(x_cell, y_cell, 95, 85); 
+  robot->movePoint(x_cell, y_cell, 95, 60); 
+  robot->movePoint(x_cell, y_cell, 15, 50); 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_y(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 5); 
+  robot->movePoint(x_cell, y_cell, 5, 95); 
+  robot->movePoint(x_cell, y_cell, 75, 85); 
+  robot->movePoint(x_cell, y_cell, 75, 60); 
+  robot->movePoint(x_cell, y_cell, 5, 50); 
+
+  robot->setPoint(x_cell, y_cell, 95, 95); 
+  robot->movePoint(x_cell, y_cell, 95, 5); 
+
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_aE(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 20); 
+  robot->movePoint(x_cell, y_cell, 20, 5); 
+  robot->movePoint(x_cell, y_cell, 80, 5); 
+  robot->movePoint(x_cell, y_cell, 95, 20); 
+
+  robot->movePoint(x_cell, y_cell, 95, 80); 
+  robot->movePoint(x_cell, y_cell, 80, 95); 
+  robot->movePoint(x_cell, y_cell, 20, 95); 
+  robot->movePoint(x_cell, y_cell, 5, 80); 
+
+  robot->setPoint(x_cell, y_cell, 95, 50);
+  robot->movePoint(x_cell, y_cell, 20, 50); 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_D(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 5); 
+  robot->movePoint(x_cell, y_cell, 5, 95); 
+  robot->movePoint(x_cell, y_cell, 95, 75); 
+  robot->movePoint(x_cell, y_cell, 95, 25); 
+  robot->movePoint(x_cell, y_cell, 5, 5); 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_R(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 95); 
+  robot->movePoint(x_cell, y_cell, 5, 5); 
+  robot->movePoint(x_cell, y_cell, 95, 15); 
+  robot->movePoint(x_cell, y_cell, 95, 40); 
+  robot->movePoint(x_cell, y_cell, 5, 50); 
+  robot->movePoint(x_cell, y_cell, 95, 95); 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_Ya(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 95, 95); 
+  robot->movePoint(x_cell, y_cell, 95, 5); 
+  robot->movePoint(x_cell, y_cell, 5, 15); 
+  robot->movePoint(x_cell, y_cell, 5, 40); 
+  robot->movePoint(x_cell, y_cell, 95, 50); 
+  robot->movePoint(x_cell, y_cell, 5, 95); 
+
+  robot->marker_up();
+}
+
+
+function robot_fanuc::draw_r_F(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 50, 95); 
+  robot->movePoint(x_cell, y_cell, 50, 85); 
+  robot->movePoint(x_cell, y_cell, 95, 75); 
+  robot->movePoint(x_cell, y_cell, 95, 25); 
+  robot->movePoint(x_cell, y_cell, 50, 15); 
+  robot->movePoint(x_cell, y_cell, 50, 85); 
+  robot->movePoint(x_cell, y_cell, 5, 75); 
+  robot->movePoint(x_cell, y_cell, 5, 25); 
+  robot->movePoint(x_cell, y_cell, 50, 15); 
+  robot->movePoint(x_cell, y_cell, 50, 5); 
+
+  robot->marker_up();
+}
+
+
+function robot_fanuc::draw_S(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 95, 20); 
+  robot->movePoint(x_cell, y_cell, 80, 5); 
+  robot->movePoint(x_cell, y_cell, 20, 5); 
+  robot->movePoint(x_cell, y_cell, 5, 20); 
+  robot->movePoint(x_cell, y_cell, 5, 40); 
+  robot->movePoint(x_cell, y_cell, 95, 60); 
+  robot->movePoint(x_cell, y_cell, 95, 80); 
+  robot->movePoint(x_cell, y_cell, 80, 95); 
+  robot->movePoint(x_cell, y_cell, 20, 95); 
+  robot->movePoint(x_cell, y_cell, 5, 80); 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_r_Yu(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 5); 
+  robot->movePoint(x_cell, y_cell, 5, 95); 
+
+  robot->setPoint(x_cell, y_cell, 5, 50); 
+  robot->movePoint(x_cell, y_cell, 25, 50); 
+
+  robot->movePoint(x_cell, y_cell, 25, 80); 
+  robot->movePoint(x_cell, y_cell, 40, 95); 
+  robot->movePoint(x_cell, y_cell, 80, 95); 
+  robot->movePoint(x_cell, y_cell, 95, 80); 
+  robot->movePoint(x_cell, y_cell, 95, 20); 
+  robot->movePoint(x_cell, y_cell, 80, 5); 
+  robot->movePoint(x_cell, y_cell, 40, 5); 
+  robot->movePoint(x_cell, y_cell, 25, 20); 
+  robot->movePoint(x_cell, y_cell, 25, 50); 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_Comm(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 50, 90); 
+  robot->movePoint(x_cell, y_cell, 45, 95); 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_Dot(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 50, 95); 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_two_dots(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 50, 95); 
+
+  robot->setPoint(x_cell, y_cell, 48, 55); 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_Equal(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 80, 40); 
+  robot->movePoint(x_cell, y_cell, 20, 40); 
+
+  robot->setPoint(x_cell, y_cell, 80, 60); 
+  robot->movePoint(x_cell, y_cell, 20, 60); 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_Minus(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 80, 50); 
+  robot->movePoint(x_cell, y_cell, 20, 50); 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_Roof(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 70, 25); 
+  robot->movePoint(x_cell, y_cell, 50, 5); 
+  robot->movePoint(x_cell, y_cell, 30, 25); 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_Exclamation(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 50, 95); 
+
+  robot->setPoint(x_cell, y_cell, 50, 85); 
+  robot->movePoint(x_cell, y_cell, 50, 5); 
+
+  robot->marker_up();
+}
+
+function robot_fanuc::draw_Slash(x_cell,y_cell){
+  robot->setPoint(x_cell, y_cell, 5, 95); 
+  robot->movePoint(x_cell, y_cell, 95, 5); 
+
+  robot->marker_up();
+}
